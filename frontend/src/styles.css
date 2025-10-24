@@ -1,0 +1,73 @@
+:root{
+  --bg: #f7f7fb;
+  --card: #ffffff;
+  --muted: #6b7280;
+  --accent: #2563eb;
+  --border: #e6e9ef;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  background:var(--bg);
+  color:#0f172a;
+}
+
+.app{
+  max-width:900px;
+  margin:36px auto;
+  padding:20px;
+}
+
+.title{
+  margin:0 0 8px 0;
+  font-size:28px;
+  color:var(--accent);
+}
+.lead{color:var(--muted); margin-bottom:18px}
+
+.items-list{list-style:none; padding:0; margin:0}
+.item{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:14px;
+  margin-bottom:12px;
+  box-shadow: 0 1px 2px rgba(16,24,40,0.03);
+}
+.item h3{margin:0 0 6px 0}
+.item .desc{margin:6px 0 8px 0; color:#111827}
+.item .meta{font-size:12px; color:var(--muted)}
+
+.empty{color:var(--muted); font-style:italic}
+
+.loading{color:var(--muted)}
+
+.form{
+  display:grid;
+  gap:8px;
+  grid-template-columns: 1fr 160px;
+  align-items:start;
+  margin-bottom:18px;
+}
+.form-row{display:flex; gap:8px}
+input[type="text"], textarea, select, input[type="date"]{
+  width:100%;
+  padding:8px 10px;
+  border:1px solid var(--border);
+  border-radius:6px;
+  font-size:14px;
+}
+textarea{min-height:80px}
+.btn{
+  background:var(--accent);
+  color:white;
+  border:none;
+  padding:10px 14px;
+  border-radius:6px;
+  cursor:pointer;
+}
+.btn[disabled]{opacity:0.6; cursor:not-allowed}
+.success{color:green; margin-top:6px}
+.error{color:#b91c1c; margin-top:6px}

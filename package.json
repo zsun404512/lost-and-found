@@ -1,0 +1,17 @@
+{
+  "name": "cs-35l-group-project",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "start": "npm --workspace backend start",
+  "dev": "concurrently \"npm --workspace backend run dev\" \"npm --workspace frontend run dev\"",
+    "install-all": "npm install --workspaces"
+  },
+  "devDependencies": {
+    "concurrently": "^7.6.0"
+  }
+}

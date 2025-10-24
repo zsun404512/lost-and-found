@@ -1,0 +1,18 @@
+[
+  {
+    "id": 1,
+    "type": "lost",
+    "title": "Black Wallet",
+    "description": "Leather wallet with student ID and a few cards.",
+    "location": "Library, 2nd floor",
+    "date": "2025-10-20"
+  },
+  {
+    "id": 2,
+    "type": "found",
+    "title": "Silver Keychain",
+    "description": "Keychain with two keys and a blue tag.",
+    "location": "Cafeteria",
+    "date": "2025-10-22"
+  }
+]
