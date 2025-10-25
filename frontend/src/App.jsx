@@ -54,28 +54,27 @@ function Home() {
   return (
     <div className="app">
       <h1 className="title">Lost & Found Tracker</h1>
-      <p className="lead">Below are recent items reported in the system.</p>
+      <p className="lead">Report a lost or found item using the form below.</p>
 
       <form className="form" onSubmit={onSubmit}>
         <div>
           <input name="title" value={form.title} onChange={onChange} placeholder="Item title (required)" />
-          <div className="form-row">
+          <div className="form-row" style={{ marginTop: '8px' }}>
             <select name="type" value={form.type} onChange={onChange}>
-              <option value="lost">Lost</option>
-              <option value="found">Found</option>
+              <option value="lost">I lost it on...</option>
+              <option value="found">I found it on...</option>
             </select>
             <input type="date" name="date" value={form.date} onChange={onChange} />
           </div>
           <input name="location" value={form.location} onChange={onChange} placeholder="Location" />
           <textarea name="description" value={form.description} onChange={onChange} placeholder="Description" />
-        </div>
 
-        <div>
           <button className="btn" type="submit" disabled={submitting}>{submitting ? 'Submitting...' : 'Submit Item'}</button>
           {message && <div className={message.type === 'error' ? 'error' : 'success'}>{message.text}</div>}
         </div>
       </form>
 
+      <h2 className="subtitle">Recent Items</h2>
       {loading ? (
         <p className="loading">Loading...</p>
       ) : (
@@ -118,15 +117,16 @@ const SignUpPage = () => (
 export default function App() {
   return (
     <BrowserRouter>
-      <div className="app" style={{ paddingBottom: 8 }}>
-        <nav>
-          <Link to="/">Home</Link>{' '}
-          <span>|</span>{' '}
-          <Link to="/login">Login</Link>{' '}
-          <span>|</span>{' '}
-          <Link to="/signup">Sign Up</Link>
+      <header className="header">
+        <nav className="nav-container">
+          <Link to="/" className="nav-brand">Lost & Found</Link>
+          <div className="nav-links">
+            <Link to="/login">Login</Link>
+            <span>|</span>
+            <Link to="/signup">Sign Up</Link>
+          </div>
         </nav>
-      </div>
+      </header>
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<LoginPage />} />
