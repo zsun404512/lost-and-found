@@ -67,9 +67,12 @@ function Home() {
             <input type="date" name="date" value={form.date} onChange={onChange} />
           </div>
           <input name="location" value={form.location} onChange={onChange} placeholder="Location" />
+          <div className="form-row" style={{ marginTop: '8px' }}>
           <textarea name="description" value={form.description} onChange={onChange} placeholder="Description" />
-
+          </div>
+          <div className="form-row" style={{ marginTop: '8px' }}>
           <button className="btn" type="submit" disabled={submitting}>{submitting ? 'Submitting...' : 'Submit Item'}</button>
+          </div>
           {message && <div className={message.type === 'error' ? 'error' : 'success'}>{message.text}</div>}
         </div>
       </form>
