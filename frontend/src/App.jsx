@@ -39,7 +39,9 @@ import SignUpPage from './pages/SignUpPage';
  *
  * Note: this component keeps state locally for simplicity; for a larger app consider
  * lifting state up or using a global store.
- */
+ */import LoginPage from './pages/LoginPage';
+import SignUpPage from './pages/SignUpPage';
+
 function Home() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
