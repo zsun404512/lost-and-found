@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import LoginPage from './pages/LoginPage';
+import SignUpPage from './pages/SignUpPage';
 
 function Home() {
   const [items, setItems] = useState([]);
@@ -102,20 +104,6 @@ function Home() {
     </div>
   );
 }
-
-const LoginPage = () => (
-  <div className="app">
-    <h1 className="title">Login</h1>
-    <p className="lead">This is a placeholder page.</p>
-  </div>
-);
-
-const SignUpPage = () => (
-  <div className="app">
-    <h1 className="title">Sign Up</h1>
-    <p className="lead">This is a placeholder page.</p>
-  </div>
-);
 
 export default function App() {
   return (
