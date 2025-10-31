@@ -1,5 +1,26 @@
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import LoginPage from './pages/LoginPage';
+import SignUpPage from './pages/SignUpPage';
+
+/**
+ * Home component — main application UI for listing and submitting items.
+ *
+ * Responsibilities:
+ * - load recent items from the backend on mount
+ * - render a submission form for lost/found items
+ * - display messages and UI loading/submitting states
+ *
+ * Local state:
+ * - items: array of items received from the server
+ * - loading: whether initial fetch is in progress
+ * - form: controlled form state for the submission fields
+ * - submitting: whether a submit request is in progress
+ * - message: optional UI message ({type: 'error'|'success', text})
+ *
+ * Note: this component keeps state locally for simplicity; for a larger app consider
+ * lifting state up or using a global store.
+ */
 
 /**
  * Home component — main application UI for listing and submitting items.
@@ -199,34 +220,6 @@ function Home() {
     </div>
   );
 }
-
-/**
- * LoginPage
- *
- * Placeholder page for authentication. Kept minimal while auth is out-of-scope for
- * the demo. Replace with a real login form that posts credentials to your auth API
- * when ready.
- */
-const LoginPage = () => (
-  <div className="app">
-    <h1 className="title">Login</h1>
-    <p className="lead">This is a placeholder page.</p>
-  </div>
-);
-
-/**
- * SignUpPage
- *
- * Placeholder for a signup flow. Keep as a static page until a backend endpoint
- * for creating users is implemented.
- */
-const SignUpPage = () => (
-  <div className="app">
-    <h1 className="title">Sign Up</h1>
-    <p className="lead">This is a placeholder page.</p>
-  </div>
-);
-
 /**
  * App — top-level router component.
  *
