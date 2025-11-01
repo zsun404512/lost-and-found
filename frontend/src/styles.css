@@ -237,3 +237,28 @@ textarea{
 .auth-footer a:hover {
   text-decoration: underline;
 }
+
+.nav-user-email {
+  color: #374151;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.nav-logout-button {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-weight: 500;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+  border-radius: 6px;
+  padding: 4px 10px;
+  transition: all 0.2s ease;
+}
+
+.nav-logout-button:hover {
+  background: #fbeeee;
+  border-color: #ef4444;
+  color: #b91c1c;
+}

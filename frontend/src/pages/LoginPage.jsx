@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-// TODO: We will import the 'useAuth' hook here later
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -8,22 +8,24 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
 
-  // TODO: We will get the 'login' function from useAuth
-//   const { login } = useAuth(); 
+  const { login } = useAuth(); 
+  const navigate = useNavigate();
 
   async function onSubmit(e) {
     e.preventDefault();
     setMessage(null);
     setLoading(true);
     
-    // TODO: We will call the real 'login' function later
-    console.log('Submitting login form:', { email, password });
+    // call login
+    try {
+        login(email, password);
+        navigate('/');
+    }
+    catch (err) {
+        setMessage({ type: 'error', text: 'Invalid credentials (Simulation)' });
+        setLoading(false);
+    }
     
-    // Simulate a network request
-    setTimeout(() => {
-      setMessage({ type: 'error', text: 'Invalid credentials (Simulation)' });
-      setLoading(false);
-    }, 1000);
   }
 
   return (
