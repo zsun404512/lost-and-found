@@ -1,12 +1,27 @@
-const express = require('express');
-const path = require('path');
-const mongoose = require('mongoose');
-const dotenv = require('dotenv');
+// --- Converted to ES Module 'import' syntax ---
+import express from 'express';
+import path from 'path';
+import mongoose from 'mongoose';
+import dotenv from 'dotenv';
+import morgan from 'morgan';
+import cors from 'cors';
+
+// Helper to get __dirname in ES Modules
+import { fileURLToPath } from 'url';
+
+// Helper to 'require' JSON files in ES Modules
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+
+// --- Our new auth routes ---
+import authRoutes from './routes/authRoutes.js';
 
 dotenv.config();
 
-const morgan = require('morgan');
-const cors = require('cors');
+// Re-create __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
 const PORT = process.env.PORT || 4000;
 
@@ -14,6 +29,9 @@ const PORT = process.env.PORT || 4000;
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(cors()); // enable CORS for dev
+
+// --- Use our new Auth Routes ---
+app.use('/api/auth', authRoutes);
 
 // Simple Mongoose schema for lost and found items
 const itemSchema = new mongoose.Schema({
@@ -46,6 +64,7 @@ if (mongoUri) {
 // In-memory fallback (loads sample data.json if present)
 let inMemoryItems = [];
 try {
+  // We use our 'require' helper here for the .json file
   inMemoryItems = require('./data.json');
 } catch (e) {
   inMemoryItems = [];
@@ -110,7 +129,7 @@ app.get('/api/items/:id', async (req, res) => {
     }
   }
   const it = inMemoryItems.find(i => String(i.id) === String(id));
-  if (!it) return res.status(404).json({ error: 'Not found' });
+  if (!it) return res.status(440).json({ error: 'Not found' });
   return res.json(it);
 });
 
