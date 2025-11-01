@@ -6,43 +6,7 @@ import { useAuth } from './context/AuthContext';
 
 /**
  * Home component — main application UI for listing and submitting items.
- *
- * Responsibilities:
- * - load recent items from the backend on mount
- * - render a submission form for lost/found items
- * - display messages and UI loading/submitting states
- *
- * Local state:
- * - items: array of items received from the server
- * - loading: whether initial fetch is in progress
- * - form: controlled form state for the submission fields
- * - submitting: whether a submit request is in progress
- * - message: optional UI message ({type: 'error'|'success', text})
- *
- * Note: this component keeps state locally for simplicity; for a larger app consider
- * lifting state up or using a global store.
  */
-
-/**
- * Home component — main application UI for listing and submitting items.
- *
- * Responsibilities:
- * - load recent items from the backend on mount
- * - render a submission form for lost/found items
- * - display messages and UI loading/submitting states
- *
- * Local state:
- * - items: array of items received from the server
- * - loading: whether initial fetch is in progress
- * - form: controlled form state for the submission fields
- * - submitting: whether a submit request is in progress
- * - message: optional UI message ({type: 'error'|'success', text})
- *
- * Note: this component keeps state locally for simplicity; for a larger app consider
- * lifting state up or using a global store.
- */import LoginPage from './pages/LoginPage';
-import SignUpPage from './pages/SignUpPage';
-
 function Home() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -52,39 +16,14 @@ function Home() {
 
   /**
    * Load items from the backend when the component mounts.
-   *
-   * Contract:
-   * - Runs once on mount (empty dependency array).
-   * - Side-effects:
-   *   - fetches `/api/items` and populates local `items` state on success
-   *   - updates `loading` state during the request
-   *   - on error, sets `items` to an empty array and shows an optional message
-   *
-   * Implementation notes:
-   * - Uses AbortController to cancel the fetch if the component unmounts before
-   *   the response arrives. This avoids setting state on an unmounted component.
-   * - Checks `response.ok` and treats non-2xx responses as errors.
-   * - Keeps the UI responsive by ensuring `loading` is cleared in `finally`.
-   * - If you expect frequent updates, consider polling or a websocket instead
-   *   of a single one-time fetch.
-   *
-   * Edge cases:
-   * - Network failures and server errors are caught; we swallow aborts silently
-   *   (AbortError) to avoid noisy error messages when the user navigates away.
-   * - TODO: If the server returns an unexpected shape, the `setItems` call may be
-   *   given malformed data
-   *
-   * @returns {void}
    */
   useEffect(() => {
     fetch('/api/items')
       .then((r) => r.json())
       .then((data) => setItems(data))
       .catch((err) => {
-        // Ignore aborts — they are expected on unmount. Show other errors.
         if (err.name === 'AbortError') return;
         setItems([]);
-        // optional: show a message to the user for load failure
         setMessage({ type: 'error', text: 'Failed to load items' });
       })
       .finally(() => setLoading(false));
@@ -92,19 +31,6 @@ function Home() {
 
   /**
  * Handle form input changes.
- *
- * Contract:
- * - Input: browser Input change Event
- * - Output: void
- * - Side-effects:
- *   - updates the corresponding field in `form` state
- *   - clears any existing `message`
- *
- * Example:
- *   <input name="title" value={form.title} onChange={onChange} />
- *
- * @param {Event} e - change event from the browser
- * @returns {void}
  */
   function onChange(e) {
     const { name, value } = e.target;
@@ -114,33 +40,6 @@ function Home() {
 
   /**
    * Handle form submission.
-   *
-   * Contract:
-   * - Input: browser Form submit Event
-   * - Output: Promise<void>
-   * - Side-effects:
-   *   - prevents default form navigation
-   *   - validates `form.title` and sets an error message if missing
-   *   - sets `submitting` state while the request is in-flight
-   *   - performs a POST to `/api/items` with the JSON form body
-   *   - on success: prepends the created item to `items`, resets `form`, and shows a success message
-   *   - on failure: sets an error message describing the failure
-   *
-   * Behavior / error modes:
-   * - If `form.title` is empty, the request is not made and a client-side error message is shown.
-   * - If the fetch fails or the server returns a non-2xx status, an error message is set using the
-   *   server-provided JSON `error` field when available, otherwise a generic message is used.
-   * - The `submitting` flag is always reset in the `finally` block so the UI re-enables inputs.
-   *
-   * Notes:
-   * - Expects the server to return the created item as JSON on success.
-   * - This function mutates local component state (`items`, `form`, `message`, `submitting`).
-   *
-   * Example:
-   *   <form onSubmit={onSubmit}>...
-   *
-   * @param {Event} e - submit event from the browser
-   * @returns {Promise<void>}
    */
   async function onSubmit(e) {
     e.preventDefault(); 
@@ -206,7 +105,6 @@ function Home() {
             <p className="empty">No items yet.</p>
           ) : (
             <ul className="items-list">
-              {/* Render each item. Key prefers MongoDB _id, fallback to id. */}
               {items.map((it) => (
                 <li key={it._id || it.id} className="item">
                   <h3>
@@ -223,15 +121,9 @@ function Home() {
     </div>
   );
 }
+
 /**
  * App — top-level router component.
- *
- * Responsibilities:
- * - provide client-side routing for the SPA
- * - render the header/nav present on all pages
- *
- * This is intentionally small; as the app grows consider splitting routes into
- * a separate `routes` module and lazy-loading page components with React.lazy.
  */
 export default function App() {
   const { user, logout } = useAuth();
