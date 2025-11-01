@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
 import SignUpPage from './pages/SignUpPage';
+import { useAuth } from './context/AuthContext';
 
 /**
  * Home component — main application UI for listing and submitting items.
@@ -233,15 +234,28 @@ function Home() {
  * a separate `routes` module and lazy-loading page components with React.lazy.
  */
 export default function App() {
+  const { user, logout } = useAuth();
+
   return (
     <BrowserRouter>
       <header className="header">
         <nav className="nav-container">
           <Link to="/" className="nav-brand">Lost & Found</Link>
           <div className="nav-links">
-            <Link to="/login">Login</Link>
-            <span>|</span>
-            <Link to="/signup">Sign Up</Link>
+            {user ? (
+              <>
+                <span className="nav-user-email">{user.email}</span>
+                <button onClick={logout} className="nav-logout-button">
+                  Logout
+                </button>
+              </>
+            ) : (
+              <>
+                <Link to="/login">Login</Link>
+                <span>|</span>
+                <Link to="/signup">Sign Up</Link>
+              </>
+            )}
           </div>
         </nav>
       </header>
