@@ -47,3 +47,50 @@ export const registerUser = async (req, res) => {
     res.status(500).json({ message: 'Server Error' });
   }
 };
+
+// @desc    Log in (authenticate) a user
+// @route   POST /api/auth/login
+export const loginUser = async(req, res) => {
+  // 1. Get email and password from the request body
+  const { email, password } = req.body;
+  
+  // 2. Check if email or password are missing
+  if (!email || !password) {
+    res.status(400).json({ message: 'Please provide email and password' });
+  }
+
+  try {
+    // 3. Find the user in the database
+    const user = await User.findOne({ email });
+
+    // 4. If user doesn't exist, send error
+    if (!user) {
+        res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    // 5. If user *does* exist, compare their password with the hashed one
+    const isMatch = await bcrypt.compare(password, user.password);
+
+    // 6. If passwords don't match, send error
+    if (!isMatch) {
+        return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    // 7. If passwords match, create a token
+    const token = jwt.sign(
+      { userId: user._id, email: user.email }, // This is the "payload"
+      process.env.JWT_SECRET, // Your secret key from .env
+      { expiresIn: '1h' }    // Token lasts for 1 hour
+    );
+
+    // 8. Send the token and user info back to the frontend
+    res.status(200).json({
+        message: 'Login successful',
+        email: user.email,
+        token: token,
+    });
+  } catch (error) {
+    console.error('Login Error:', error);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
