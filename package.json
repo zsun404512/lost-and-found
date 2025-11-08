@@ -13,5 +13,8 @@
   },
   "devDependencies": {
     "concurrently": "^7.6.0"
+  },
+  "dependencies": {
+    "jwt-decode": "^4.0.0"
   }
 }

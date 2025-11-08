@@ -12,14 +12,34 @@ export default function SignUpPage() {
     setMessage(null);
     setLoading(true);
 
-    // TODO: We will wire this up to the backend later
-    console.log('Submitting signup form:', { email, password });
-    
-    // Simulate a network request
-    setTimeout(() => {
-      setMessage({ type: 'success', text: 'Account created! (Simulation)' });
-      setLoading(false);
-    }, 1000);
+    try {
+        // 1. Send the form data to our new backend route
+        const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+        });
+
+        const data = await res.json();
+
+        // 2. Check if the backend sent an error
+        if (!res.ok) {
+        // 'data.message' will be "User already exists" or similar
+        throw new Error(data.message || 'Failed to register');
+        }
+
+        // 3. Success!
+        setMessage({ type: 'success', text: 'Account created! You can now log in.' });
+
+    } catch (error) {
+        // 4. Show any errors to the user
+        setMessage({ type: 'error', text: error.message });
+    } finally {
+        // 5. Always stop the loading spinner
+        setLoading(false);
+    }
   }
 
   return (
