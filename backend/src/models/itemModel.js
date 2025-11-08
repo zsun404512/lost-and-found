@@ -11,6 +11,11 @@ const itemSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId, // This links to a User's ID
     required: true,
     ref: 'User' // This tells Mongoose the 'user' field refers to the 'User' model
+  },
+  status: {
+    type: String,
+    enum: ['open', 'resolved'],
+    default: 'open'
   }
 }, { timestamps: true });
 
