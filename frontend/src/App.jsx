@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
 import SignUpPage from './pages/SignUpPage';
 import { useAuth } from './context/AuthContext';
-import { useDebounce } from './hooks/useDebounce'; // --- NEW: Import debounce hook ---
+import { useDebounce } from './hooks/useDebounce';
 
 /**
  * Home component — main application UI for listing and submitting items.
@@ -15,23 +15,16 @@ function Home() {
   const [form, setForm] = useState({ title: '', type: 'lost', description: '', location: '', date: '' });
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
-
-  // --- NEW: State for search and filter ---
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterType, setFilterType] = useState('all'); // 'all', 'lost', or 'found'
-  
-  // --- NEW: Debounce the search query ---
-  // This 'debouncedSearch' value will only update 500ms *after* the user stops typing
+  const [filterType, setFilterType] = useState('all'); 
   const debouncedSearch = useDebounce(searchQuery, 500);
 
   /**
-   * --- REPLACED: This useEffect now re-fetches data when search/filter changes ---
    * Load items from the backend.
    */
   useEffect(() => {
     setLoading(true);
     
-    // 1. Build the query parameters
     const params = new URLSearchParams();
     if (debouncedSearch) {
       params.append('search', debouncedSearch);
@@ -40,17 +33,13 @@ function Home() {
       params.append('type', filterType);
     }
 
-    // 2. Create the final URL
     const queryString = params.toString();
     const url = `/api/items${queryString ? `?${queryString}` : ''}`;
-    console.log('Fetching:', url); // This is the log you see
+    console.log('Fetching:', url);
 
-    // 3. Fetch from the new URL
     fetch(url)
       .then((r) => r.json())
-      .then((data) => {
-        setItems(data); // This REPLACES the old state with the new filtered data
-      })
+      .then((data) => setItems(data))
       .catch((err) => {
         if (err.name === 'AbortError') return;
         setItems([]);
@@ -58,7 +47,7 @@ function Home() {
       })
       .finally(() => setLoading(false));
       
-  }, [debouncedSearch, filterType]); // <-- Re-runs when these values change
+  }, [debouncedSearch, filterType]);
 
   /**
    * Handle form input changes.
@@ -100,10 +89,9 @@ function Home() {
         throw new Error(err.message || 'Failed to submit');
       }
       const created = await res.json();
-      // When we add a new item, clear search so we can see it
       setSearchQuery('');
       setFilterType('all');
-      setItems((p) => [created, ...p]); // Add new item to the top
+      setItems((p) => [created, ...p]); 
       setForm({ title: '', type: 'lost', description: '', location: '', date: '' });
       setMessage({ type: 'success', text: 'Item submitted.' });
     } catch (err) {
@@ -141,6 +129,42 @@ function Home() {
     }
   }
 
+  // --- NEW ---
+  /**
+   * Handle toggling a post's 'resolved' status.
+   */
+  async function handleToggleResolve(itemId) {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setMessage({ type: 'error', text: 'You must be logged in.' });
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/items/${itemId}/toggle-resolve`, {
+        method: 'PUT', // We're using PUT to update
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      const updatedItem = await res.json();
+      if (!res.ok) {
+        throw new Error(updatedItem.message || 'Failed to update status');
+      }
+
+      // Success! Since our main get-all-items route now *hides*
+      // resolved items, the correct UI update is to just remove
+      // it from the list, just like deleting.
+      setItems(prevItems => prevItems.filter(item => item._id !== itemId));
+      setMessage({ type: 'success', text: 'Item marked as resolved!' });
+
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message });
+    }
+  }
+  // --- END NEW ---
+
   return (
     <div className="app">
       <h1 className="title">Lost & Found Tracker</h1>
@@ -149,6 +173,7 @@ function Home() {
         <>
           <p className="lead">Report a lost or found item using the form below.</p>
           <form className="form" onSubmit={onSubmit}>
+            {/* ... (Form JSX) ... */}
             <div>
               <input name="title" value={form.title} onChange={onChange} placeholder="Item title (required)" />
               <div className="form-row" style={{ marginTop: '8px' }}>
@@ -175,7 +200,6 @@ function Home() {
         </p>
       )}
 
-      {/* --- Search and Filter Bar --- */}
       <h2 className="subtitle">Recent Items</h2>
       <div className="filter-container">
         <input
@@ -214,14 +238,24 @@ function Home() {
                       {it.title} <small style={{ color: '#374151' }}>({it.type})</small>
                     </h3>
                     
+                    {/* --- NEW: Wrapper and Resolve Button --- */}
                     {user && user.userId === it.user && (
-                      <button 
-                        className="btn-delete"
-                        onClick={() => handleDelete(it._id)}
-                      >
-                        Delete
-                      </button>
+                      <div className="item-owner-actions">
+                        <button 
+                          className="btn-resolve"
+                          onClick={() => handleToggleResolve(it._id)}
+                        >
+                          Resolve
+                        </button>
+                        <button 
+                          className="btn-delete"
+                          onClick={() => handleDelete(it._id)}
+                        >
+                          Delete
+                        </button>
+                      </div>
                     )}
+                    {/* --- END NEW --- */}
                   </div>
 
                   <div className="desc">{it.description}</div>

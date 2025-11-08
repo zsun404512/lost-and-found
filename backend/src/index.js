@@ -72,7 +72,9 @@ app.get('/api/items', async (req, res) => {
   // search logic
   const { search, type } = req.query;
 
-  const filter = {};
+  const filter = {
+    status: 'open'
+  };
 
   // add to filter if search query is provided
   if (search) {
@@ -175,6 +177,45 @@ app.delete('/api/items/:id', protect, async (req, res) => {
     res.status(200).json({ message: 'Item removed successfully' });
   } catch (error) {
     console.error('Delete Error:', error);
+    if (error.name === 'CastError') {
+      return res.status(400).json({ message: 'Invalid item ID' });
+    }
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
+// toggle post status between open and resolved (owner of post only)
+app.put('/api/items/:id/toggle-resolve', protect, async (req, res) => {
+  console.log(`[PUT] /api/items/${req.params.id}/toggle-resolve`);
+
+  // Check for DB connection
+  if (!useDb || mongoose.connection.readyState !== 1) {
+    return res.status(500).json({ message: 'Database not connected' });
+  }
+
+  try {
+    // find the item
+    const item = await Item.findById(req.params.id);
+
+    // check if item exists 
+    if (!item) {
+      return res.status(404).json({ message: 'Item not found' });
+    }
+
+    // compare item's 'user' field with the user from the token
+    if (item.user.toString() !== req.user.userId) {
+      return res.status(401).json({ message: 'User not authorized' });
+    }
+
+    // toggle status
+    item.status = item.status === 'open' ? 'resolved' : 'open';
+    await item.save();
+
+    // send back updated item to frontend
+    res.status(200).json(item);
+  }
+  catch (error) {
+    console.error('Resolve Toggle Error:', error);
     if (error.name === 'CastError') {
       return res.status(400).json({ message: 'Invalid item ID' });
     }
