@@ -18,14 +18,14 @@ export default function LoginPage() {
     
     // call login
     try {
-        login(email, password);
+        await login(email, password);
         navigate('/');
     }
-    catch (err) {
-        setMessage({ type: 'error', text: 'Invalid credentials (Simulation)' });
+    // display errors if they exist
+    catch (error) {
+        setMessage({ type: 'error', text: error.message });
         setLoading(false);
     }
-    
   }
 
   return (
