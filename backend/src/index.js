@@ -9,8 +9,8 @@ import { createRequire } from 'module';
 
 // --- Our new imports ---
 import authRoutes from './routes/authRoutes.js';
-import Item from './models/itemModel.js'; // 1. IMPORT our new Item model
-import { protect } from './middleware/authMiddleware.js'; // 2. IMPORT our middleware
+import Item from './models/itemModel.js';
+import { protect } from './middleware/authMiddleware.js';
 
 const require = createRequire(import.meta.url);
 dotenv.config();
@@ -28,22 +28,42 @@ app.use(cors());
 // --- API Routes ---
 app.use('/api/auth', authRoutes);
 
-// 3. DELETE the old itemSchema and Item model. It's gone from here.
 
 // Try to connect to MongoDB...
-// ... (all the MongoDB connection logic stays exactly the same) ...
 const mongoUri = process.env.MONGODB_URI;
-// ... (etc) ...
+
+// --- THIS LINE WAS MISSING ---
+let useDb = false; 
+// -----------------------------
+
+if (mongoUri) {
+  mongoose.connect(mongoUri, { useNewUrlParser: true, useUnifiedTopology: true })
+    .then(() => {
+      useDb = true;
+      console.log('Connected to MongoDB');
+    })
+    .catch((err) => {
+      useDb = false;
+      console.error('Failed to connect to MongoDB:', err.message);
+    });
+} else {
+  console.log('No MONGODB_URI set — running with in-memory fallback.');
+}
 
 // In-memory fallback...
-// ... (this logic also stays the same) ...
+let inMemoryItems = [];
+try {
+  inMemoryItems = require('./data.json');
+} catch (e) {
+  inMemoryItems = [];
+}
 
 app.get('/api/ping', (req, res) => {
-  // ... (this route stays the same) ...
+  res.json({ message: 'pong', time: new Date().toISOString() });
 });
 
 app.get('/api', (req, res) => {
-  // ... (this route stays the same) ...
+  res.json({ message: 'Hello from the Lost and Found API!' });
 });
 
 // GET /api/items (This route is still public, anyone can see items)
@@ -51,7 +71,6 @@ app.get('/api/items', async (req, res) => {
   console.log('[GET] /api/items');
   if (useDb && mongoose.connection.readyState === 1) {
     try {
-      // Find items and sort by newest
       const docs = await Item.find().sort({ createdAt: -1 }).lean();
       return res.json(docs);
     } catch (e) {
@@ -61,9 +80,7 @@ app.get('/api/items', async (req, res) => {
   return res.json(inMemoryItems);
 });
 
-// 4. UPDATE the "create post" route
-//    We've added 'protect' as the second argument.
-//    This route is now PROTECTED.
+// POST /api/items (Protected)
 app.post('/api/items', protect, async (req, res) => {
   const payload = req.body;
   console.log('[POST] /api/items - payload:', payload);
@@ -71,10 +88,9 @@ app.post('/api/items', protect, async (req, res) => {
 
   if (useDb && mongoose.connection.readyState === 1) {
     try {
-      // 5. UPDATE the create logic to include the user
       const doc = await Item.create({
         ...payload,
-        user: req.user.userId // Get the user ID from our 'protect' middleware
+        user: req.user.userId 
       });
       
       console.log('Created item in DB:', doc._id, 'by user:', req.user.email);
@@ -85,7 +101,7 @@ app.post('/api/items', protect, async (req, res) => {
     }
   }
 
-  // ... (In-memory fallback logic can stay, but it won't have a user)
+  // In-memory fallback
   payload.id = inMemoryItems.length ? Math.max(...inMemoryItems.map(i => i.id || 0)) + 1 : 1;
   inMemoryItems.unshift(payload);
   console.log('Stored item in-memory (unprotected):', payload.id);
@@ -93,10 +109,28 @@ app.post('/api/items', protect, async (req, res) => {
 });
 
 // get single item...
-// ... (this route stays the same) ...
+app.get('/api/items/:id', async (req, res) => {
+  const { id } = req.params;
+  if (useDb && mongoose.connection.readyState === 1) {
+    try {
+      const doc = await Item.findById(id).lean();
+      if (!doc) return res.status(404).json({ error: 'Not found' });
+      return res.json(doc);
+    } catch (e) {
+      return res.status(500).json({ error: e.message });
+    }
+  }
+  const it = inMemoryItems.find(i => String(i.id) === String(id));
+  if (!it) return res.status(404).json({ error: 'Not found' });
+  return res.json(it);
+});
 
 // Serve static files...
-// ... (this route stays the same) ...
+app.use(express.static(path.join(__dirname, '../../frontend/build')));
+app.get('*', (req, res) => {
+  if (req.path.startsWith('/api')) return res.status(404).json({ error: 'Not found' });
+  res.sendFile(path.join(__dirname, '../../frontend/build', 'index.html'));
+});
 
 app.listen(PORT, () => {
   console.log(`Backend listening on http://localhost:${PORT}`);
