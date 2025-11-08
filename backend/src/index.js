@@ -66,17 +66,38 @@ app.get('/api', (req, res) => {
   res.json({ message: 'Hello from the Lost and Found API!' });
 });
 
-// GET /api/items (This route is still public, anyone can see items)
+// GET /api/items 
 app.get('/api/items', async (req, res) => {
   console.log('[GET] /api/items');
+  // search logic
+  const { search, type } = req.query;
+
+  const filter = {};
+
+  // add to filter if search query is provided
+  if (search) {
+    // This will search the 'title' and 'description' fields
+    // 'i' makes it case-insensitive
+    filter.$or = [
+      { title: { $regex: search, $options: 'i' } },
+      { description: { $regex: search, $options: 'i' } }
+    ];
+  }
+
+  // add to filter if title query is provided
+  if (type) {
+    filter.type = type;
+  }
+
   if (useDb && mongoose.connection.readyState === 1) {
     try {
-      const docs = await Item.find().sort({ createdAt: -1 }).lean();
+      const docs = await Item.find(filter).sort({ createdAt: -1 }).lean();
       return res.json(docs);
     } catch (e) {
       return res.status(500).json({ error: e.message });
     }
   }
+
   return res.json(inMemoryItems);
 });
 

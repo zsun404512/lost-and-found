@@ -3,36 +3,66 @@ import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
 import SignUpPage from './pages/SignUpPage';
 import { useAuth } from './context/AuthContext';
+import { useDebounce } from './hooks/useDebounce'; // --- NEW: Import debounce hook ---
 
 /**
  * Home component — main application UI for listing and submitting items.
  */
 function Home() {
-  const { user } = useAuth(); // We get the user to check ownership
+  const { user } = useAuth(); 
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ title: '', type: 'lost', description: '', location: '', date: '' });
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
 
+  // --- NEW: State for search and filter ---
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterType, setFilterType] = useState('all'); // 'all', 'lost', or 'found'
+  
+  // --- NEW: Debounce the search query ---
+  // This 'debouncedSearch' value will only update 500ms *after* the user stops typing
+  const debouncedSearch = useDebounce(searchQuery, 500);
+
   /**
-   * Load items from the backend when the component mounts.
+   * --- REPLACED: This useEffect now re-fetches data when search/filter changes ---
+   * Load items from the backend.
    */
   useEffect(() => {
-    fetch('/api/items')
+    setLoading(true);
+    
+    // 1. Build the query parameters
+    const params = new URLSearchParams();
+    if (debouncedSearch) {
+      params.append('search', debouncedSearch);
+    }
+    if (filterType !== 'all') {
+      params.append('type', filterType);
+    }
+
+    // 2. Create the final URL
+    const queryString = params.toString();
+    const url = `/api/items${queryString ? `?${queryString}` : ''}`;
+    console.log('Fetching:', url); // This is the log you see
+
+    // 3. Fetch from the new URL
+    fetch(url)
       .then((r) => r.json())
-      .then((data) => setItems(data))
+      .then((data) => {
+        setItems(data); // This REPLACES the old state with the new filtered data
+      })
       .catch((err) => {
         if (err.name === 'AbortError') return;
         setItems([]);
         setMessage({ type: 'error', text: 'Failed to load items' });
       })
       .finally(() => setLoading(false));
-  }, []);
+      
+  }, [debouncedSearch, filterType]); // <-- Re-runs when these values change
 
   /**
- * Handle form input changes.
- */
+   * Handle form input changes.
+   */
   function onChange(e) {
     const { name, value } = e.target;
     setForm((p) => ({ ...p, [name]: value }));
@@ -43,7 +73,6 @@ function Home() {
    * Handle form submission.
    */
   async function onSubmit(e) {
-    // ... (This function is complete and correct from last time) ...
     e.preventDefault(); 
     setMessage(null);
     if (!form.title) {
@@ -71,7 +100,10 @@ function Home() {
         throw new Error(err.message || 'Failed to submit');
       }
       const created = await res.json();
-      setItems((p) => [created, ...p]);
+      // When we add a new item, clear search so we can see it
+      setSearchQuery('');
+      setFilterType('all');
+      setItems((p) => [created, ...p]); // Add new item to the top
       setForm({ title: '', type: 'lost', description: '', location: '', date: '' });
       setMessage({ type: 'success', text: 'Item submitted.' });
     } catch (err) {
@@ -85,18 +117,12 @@ function Home() {
    * Handle deleting a post.
    */
   async function handleDelete(itemId) {
-    // Ask for confirmation (browser default, but better than nothing)
-    // Note: We avoid window.confirm() because it can be blocked.
-    // For a real app, we'd build a custom modal.
-    // For now, we'll just log a warning and proceed.
     console.warn('A custom confirmation modal should be used here.');
-
     const token = localStorage.getItem('token');
     if (!token) {
       setMessage({ type: 'error', text: 'You must be logged in.' });
       return;
     }
-
     try {
       const res = await fetch(`/api/items/${itemId}`, {
         method: 'DELETE',
@@ -104,17 +130,12 @@ function Home() {
           'Authorization': `Bearer ${token}`
         }
       });
-
       const data = await res.json();
-
       if (!res.ok) {
         throw new Error(data.message || 'Failed to delete');
       }
-
-      // 1. Success! Remove the item from the local state to update the UI.
       setItems(prevItems => prevItems.filter(item => item._id !== itemId));
       setMessage({ type: 'success', text: data.message });
-
     } catch (err) {
       setMessage({ type: 'error', text: err.message });
     }
@@ -123,13 +144,11 @@ function Home() {
   return (
     <div className="app">
       <h1 className="title">Lost & Found Tracker</h1>
-
-      {/* ... (Your conditional form logic stays the same) ... */}
+      
       {user ? (
         <>
           <p className="lead">Report a lost or found item using the form below.</p>
           <form className="form" onSubmit={onSubmit}>
-            {/* ... (Form JSX) ... */}
             <div>
               <input name="title" value={form.title} onChange={onChange} placeholder="Item title (required)" />
               <div className="form-row" style={{ marginTop: '8px' }}>
@@ -156,26 +175,45 @@ function Home() {
         </p>
       )}
 
+      {/* --- Search and Filter Bar --- */}
       <h2 className="subtitle">Recent Items</h2>
+      <div className="filter-container">
+        <input
+          type="search"
+          className="search-bar"
+          placeholder="Search by title or description..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+        <select 
+          className="type-filter"
+          value={filterType}
+          onChange={(e) => setFilterType(e.target.value)}
+        >
+          <option value="all">All Items</option>
+          <option value="lost">Lost Items</option>
+          <option value="found">Found Items</option>
+        </select>
+      </div>
+
       {loading ? (
         <p className="loading">Loading...</p>
       ) : (
         <div>
           {items.length === 0 ? (
-            <p className="empty">No items yet.</p>
+            <p className="empty">
+              {searchQuery || filterType !== 'all' ? 'No items match your search.' : 'No items yet.'}
+            </p>
           ) : (
             <ul className="items-list">
               {items.map((it) => (
                 <li key={it._id || it.id} className="item">
                   
-                  {/* --- NEW --- */}
                   <div className="item-header">
                     <h3>
                       {it.title} <small style={{ color: '#374151' }}>({it.type})</small>
                     </h3>
                     
-                    {/* 1. Check if user is logged in
-                        2. Check if user's ID matches the post's user ID */}
                     {user && user.userId === it.user && (
                       <button 
                         className="btn-delete"
@@ -185,7 +223,6 @@ function Home() {
                       </button>
                     )}
                   </div>
-                  {/* --- END NEW --- */}
 
                   <div className="desc">{it.description}</div>
                   <div className="meta">{it.location} · {it.date}</div>
