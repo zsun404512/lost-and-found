@@ -11,6 +11,7 @@ import { createRequire } from 'module';
 import authRoutes from './routes/authRoutes.js';
 import Item from './models/itemModel.js';
 import { protect } from './middleware/authMiddleware.js';
+import uploadRoutes from './routes/uploadRoutes.js';
 
 const require = createRequire(import.meta.url);
 dotenv.config();
@@ -27,7 +28,10 @@ app.use(cors());
 
 // --- API Routes ---
 app.use('/api/auth', authRoutes);
+app.use('/api/upload', uploadRoutes);
 
+// make upload folder public
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Try to connect to MongoDB...
 const mongoUri = process.env.MONGODB_URI;
@@ -87,7 +91,7 @@ app.get('/api/items', async (req, res) => {
   }
 
   // add to filter if title query is provided
-  if (type) {
+  if (type && type !== 'all') {
     filter.type = type;
   }
 
@@ -105,14 +109,19 @@ app.get('/api/items', async (req, res) => {
 
 // POST /api/items (Protected)
 app.post('/api/items', protect, async (req, res) => {
-  const payload = req.body;
-  console.log('[POST] /api/items - payload:', payload);
-  if (!payload || !payload.title) return res.status(400).json({ error: 'Missing item title' });
+  const { title, type, description, location, date, image } = req.body;
+  console.log('[POST] /api/items - payload:', req.body);
+  if (!title) return res.status(400).json({ error: 'Missing item title' });
 
   if (useDb && mongoose.connection.readyState === 1) {
     try {
       const doc = await Item.create({
-        ...payload,
+        title,
+        type,
+        description,
+        location,
+        date,
+        image,
         user: req.user.userId 
       });
       

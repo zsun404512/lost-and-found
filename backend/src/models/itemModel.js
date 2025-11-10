@@ -16,6 +16,10 @@ const itemSchema = new mongoose.Schema({
     type: String,
     enum: ['open', 'resolved'],
     default: 'open'
+  },
+  image: {
+    type: String,
+    required: false
   }
 }, { timestamps: true });
 
