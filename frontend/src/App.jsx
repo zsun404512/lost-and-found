@@ -12,7 +12,16 @@ function Home() {
   const { user } = useAuth(); 
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState({ title: '', type: 'lost', description: '', location: '', date: '' });
+  
+  // Initial form state
+  const initialFormState = { title: '', type: 'lost', description: '', location: '', date: '', image: null };
+  const [form, setForm] = useState(initialFormState);
+  
+  // State for file upload
+  const [uploading, setUploading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null); 
+  const [previewImage, setPreviewImage] = useState(null); 
+  
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -49,6 +58,22 @@ function Home() {
       
   }, [debouncedSearch, filterType]);
 
+  // Special handler for file input
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        setMessage({ type: 'error', text: 'File is too large (Max 5MB)' });
+        return;
+      }
+      setSelectedFile(file);
+      setPreviewImage(URL.createObjectURL(file));
+    } else {
+      setSelectedFile(null);
+      setPreviewImage(null);
+    }
+  }
+
   /**
    * Handle form input changes.
    */
@@ -75,24 +100,73 @@ function Home() {
       setSubmitting(false);
       return;
     }
+
+    let imageUrl = '';
+
+    // Step 1: Upload image if selected
+    if (selectedFile) {
+      setUploading(true);
+      setMessage({ type: 'success', text: 'Uploading image...' });
+      
+      const formData = new FormData();
+      formData.append('image', selectedFile);
+
+      try {
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          body: formData,
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.message || 'Image upload failed');
+        }
+        imageUrl = data.image;
+        setMessage({ type: 'success', text: 'Image uploaded! Submitting post...' });
+
+      } catch (err) {
+        setMessage({ type: 'error', text: err.message });
+        setSubmitting(false);
+        setUploading(false);
+        return;
+      } finally {
+        setUploading(false);
+      }
+    }
+
+    // Step 2: Submit the post
     try {
+      const postData = { ...form, image: imageUrl }; 
+
       const res = await fetch('/api/items', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(form),
+        body: JSON.stringify(postData),
       });
+
       if (!res.ok) {
         const err = await res.json().catch(() => ({ message: 'Unknown error' }));
-        throw new Error(err.message || 'Failed to submit');
+        throw new Error(err.message || 'Failed to submit post');
       }
+
       const created = await res.json();
       setSearchQuery('');
       setFilterType('all');
       setItems((p) => [created, ...p]); 
-      setForm({ title: '', type: 'lost', description: '', location: '', date: '' });
+      
+      setForm(initialFormState);
+      setSelectedFile(null);
+      setPreviewImage(null);
+      if (e.target.elements.image) {
+        e.target.elements.image.value = null;
+      }
+      
       setMessage({ type: 'success', text: 'Item submitted.' });
     } catch (err) {
       setMessage({ type: 'error', text: err.message || 'Submission failed' });
@@ -129,7 +203,6 @@ function Home() {
     }
   }
 
-  // --- NEW ---
   /**
    * Handle toggling a post's 'resolved' status.
    */
@@ -142,7 +215,7 @@ function Home() {
 
     try {
       const res = await fetch(`/api/items/${itemId}/toggle-resolve`, {
-        method: 'PUT', // We're using PUT to update
+        method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -153,9 +226,6 @@ function Home() {
         throw new Error(updatedItem.message || 'Failed to update status');
       }
 
-      // Success! Since our main get-all-items route now *hides*
-      // resolved items, the correct UI update is to just remove
-      // it from the list, just like deleting.
       setItems(prevItems => prevItems.filter(item => item._id !== itemId));
       setMessage({ type: 'success', text: 'Item marked as resolved!' });
 
@@ -163,7 +233,6 @@ function Home() {
       setMessage({ type: 'error', text: err.message });
     }
   }
-  // --- END NEW ---
 
   return (
     <div className="app">
@@ -173,7 +242,6 @@ function Home() {
         <>
           <p className="lead">Report a lost or found item using the form below.</p>
           <form className="form" onSubmit={onSubmit}>
-            {/* ... (Form JSX) ... */}
             <div>
               <input name="title" value={form.title} onChange={onChange} placeholder="Item title (required)" />
               <div className="form-row" style={{ marginTop: '8px' }}>
@@ -185,10 +253,26 @@ function Home() {
               </div>
               <input name="location" value={form.location} onChange={onChange} placeholder="Location" />
               <div className="form-row" style={{ marginTop: '8px' }}>
-              <textarea name="description" value={form.description} onChange={onChange} placeholder="Description" />
+                <textarea name="description" value={form.description} onChange={onChange} placeholder="Description" />
               </div>
+              
+              <div className="form-row" style={{ marginTop: '8px', alignItems: 'center' }}>
+                <input 
+                  type="file"
+                  name="image" 
+                  accept="image/png, image/jpeg, image/jpg"
+                  onChange={handleFileChange}
+                  className="file-input"
+                />
+                {previewImage && (
+                  <img src={previewImage} alt="Preview" className="image-preview" />
+                )}
+              </div>
+              
               <div className="form-row" style={{ marginTop: '8px' }}>
-              <button className="btn" type="submit" disabled={submitting}>{submitting ? 'Submitting...' : 'Submit Item'}</button>
+                <button className="btn" type="submit" disabled={submitting || uploading}>
+                  {uploading ? 'Uploading...' : (submitting ? 'Submitting...' : 'Submit Item')}
+                </button>
               </div>
               {message && <div className={message.type === 'error' ? 'error' : 'success'}>{message.text}</div>}
             </div>
@@ -201,6 +285,7 @@ function Home() {
       )}
 
       <h2 className="subtitle">Recent Items</h2>
+      
       <div className="filter-container">
         <input
           type="search"
@@ -233,15 +318,22 @@ function Home() {
               {items.map((it) => (
                 <li key={it._id || it.id} className="item">
                   
+                  {it.image && (
+                    <img 
+                      src={process.env.NODE_ENV === 'development' ? `http://localhost:4000${it.image}` : it.image} 
+                      alt={it.title} 
+                      className="item-image" 
+                    />
+                  )}
+                  
                   <div className="item-header">
                     <h3>
                       {it.title} <small style={{ color: '#374151' }}>({it.type})</small>
                     </h3>
                     
-                    {/* --- NEW: Wrapper and Resolve Button --- */}
                     {user && user.userId === it.user && (
                       <div className="item-owner-actions">
-                        <button 
+                        <button
                           className="btn-resolve"
                           onClick={() => handleToggleResolve(it._id)}
                         >
@@ -255,7 +347,6 @@ function Home() {
                         </button>
                       </div>
                     )}
-                    {/* --- END NEW --- */}
                   </div>
 
                   <div className="desc">{it.description}</div>
@@ -272,6 +363,7 @@ function Home() {
 
 /**
  * App — top-level router component.
+ * This is the part that was missing from your file.
  */
 export default function App() {
   const { user, logout } = useAuth();
