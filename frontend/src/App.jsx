@@ -9,19 +9,26 @@ import { useDebounce } from './hooks/useDebounce';
  * Home component — main application UI for listing and submitting items.
  */
 function Home() {
-  const { user } = useAuth(); 
+  const { user } = useAuth();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Initial form state
-  const initialFormState = { title: '', type: 'lost', description: '', location: '', date: '', image: null };
+  const initialFormState = {
+    title: '',
+    type: 'lost',
+    description: '',
+    location: '',
+    date: '',
+    image: null,
+  };
   const [form, setForm] = useState(initialFormState);
-  
+
   // State for file upload
   const [uploading, setUploading] = useState(false);
-  const [selectedFile, setSelectedFile] = useState(null); 
-  const [previewImage, setPreviewImage] = useState(null); 
-  
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [previewImage, setPreviewImage] = useState(null);
+
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -33,7 +40,7 @@ function Home() {
    */
   useEffect(() => {
     setLoading(true);
-    
+
     const params = new URLSearchParams();
     if (debouncedSearch) {
       params.append('search', debouncedSearch);
@@ -55,7 +62,6 @@ function Home() {
         setMessage({ type: 'error', text: 'Failed to load items' });
       })
       .finally(() => setLoading(false));
-      
   }, [debouncedSearch, filterType]);
 
   // Special handler for file input
@@ -72,7 +78,7 @@ function Home() {
       setSelectedFile(null);
       setPreviewImage(null);
     }
-  }
+  };
 
   /**
    * Handle form input changes.
@@ -87,7 +93,7 @@ function Home() {
    * Handle form submission.
    */
   async function onSubmit(e) {
-    e.preventDefault(); 
+    e.preventDefault();
     setMessage(null);
     if (!form.title) {
       setMessage({ type: 'error', text: 'Title is required' });
@@ -107,7 +113,7 @@ function Home() {
     if (selectedFile) {
       setUploading(true);
       setMessage({ type: 'success', text: 'Uploading image...' });
-      
+
       const formData = new FormData();
       formData.append('image', selectedFile);
 
@@ -139,11 +145,11 @@ function Home() {
 
     // Step 2: Submit the post
     try {
-      const postData = { ...form, image: imageUrl }; 
+      const postData = { ...form, image: imageUrl };
 
       const res = await fetch('/api/items', {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
@@ -158,15 +164,15 @@ function Home() {
       const created = await res.json();
       setSearchQuery('');
       setFilterType('all');
-      setItems((p) => [created, ...p]); 
-      
+      setItems((p) => [created, ...p]);
+
       setForm(initialFormState);
       setSelectedFile(null);
       setPreviewImage(null);
       if (e.target.elements.image) {
         e.target.elements.image.value = null;
       }
-      
+
       setMessage({ type: 'success', text: 'Item submitted.' });
     } catch (err) {
       setMessage({ type: 'error', text: err.message || 'Submission failed' });
@@ -209,83 +215,141 @@ function Home() {
   async function handleToggleResolve(itemId) {
     const token = localStorage.getItem('token');
     if (!token) {
-      setMessage({ type: 'error', text: 'You must be logged in.' });
+      setMessage({ type: "error", text: "You must be logged in." });
       return;
     }
 
     try {
       const res = await fetch(`/api/items/${itemId}/toggle-resolve`, {
-        method: 'PUT',
+        method: "PUT",
         headers: {
-          'Authorization': `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
-      
+
       const updatedItem = await res.json();
       if (!res.ok) {
-        throw new Error(updatedItem.message || 'Failed to update status');
+        throw new Error(updatedItem.message || "Failed to update status");
       }
 
-      setItems(prevItems => prevItems.filter(item => item._id !== itemId));
-      setMessage({ type: 'success', text: 'Item marked as resolved!' });
+      setItems((prevItems) =>
+        prevItems.map((item) =>
+          (item._id || item.id) === (updatedItem._id || updatedItem.id)
+            ? updatedItem
+            : item
+        )
+      );
 
+      const statusText =
+        updatedItem.status === "resolved"
+          ? "Item marked as resolved."
+          : "Item reopened.";
+      setMessage({ type: "success", text: statusText });
     } catch (err) {
-      setMessage({ type: 'error', text: err.message });
+      setMessage({ type: "error", text: err.message });
     }
   }
 
   return (
     <div className="app">
       <h1 className="title">Lost & Found Tracker</h1>
-      
+
       {user ? (
         <>
-          <p className="lead">Report a lost or found item using the form below.</p>
+          <p className="lead">
+            Report a lost or found item using the form below.
+          </p>
           <form className="form" onSubmit={onSubmit}>
             <div>
-              <input name="title" value={form.title} onChange={onChange} placeholder="Item title (required)" />
-              <div className="form-row" style={{ marginTop: '8px' }}>
+              <input
+                name="title"
+                value={form.title}
+                onChange={onChange}
+                placeholder="Item title (required)"
+              />
+              <div className="form-row" style={{ marginTop: "8px" }}>
                 <select name="type" value={form.type} onChange={onChange}>
                   <option value="lost">I lost it on...</option>
                   <option value="found">I found it on...</option>
                 </select>
-                <input type="date" name="date" value={form.date} onChange={onChange} />
+                <input
+                  type="date"
+                  name="date"
+                  value={form.date}
+                  onChange={onChange}
+                />
               </div>
-              <input name="location" value={form.location} onChange={onChange} placeholder="Location" />
-              <div className="form-row" style={{ marginTop: '8px' }}>
-                <textarea name="description" value={form.description} onChange={onChange} placeholder="Description" />
+              <input
+                name="location"
+                value={form.location}
+                onChange={onChange}
+                placeholder="Location"
+              />
+              <div className="form-row" style={{ marginTop: "8px" }}>
+                <textarea
+                  name="description"
+                  value={form.description}
+                  onChange={onChange}
+                  placeholder="Description"
+                />
               </div>
-              
-              <div className="form-row" style={{ marginTop: '8px', alignItems: 'center' }}>
-                <input 
+
+              <div
+                className="form-row"
+                style={{ marginTop: "8px", alignItems: "center" }}
+              >
+                <input
                   type="file"
-                  name="image" 
+                  name="image"
                   accept="image/png, image/jpeg, image/jpg"
                   onChange={handleFileChange}
                   className="file-input"
                 />
                 {previewImage && (
-                  <img src={previewImage} alt="Preview" className="image-preview" />
+                  <img
+                    src={previewImage}
+                    alt="Preview"
+                    className="image-preview"
+                  />
                 )}
               </div>
-              
-              <div className="form-row" style={{ marginTop: '8px' }}>
-                <button className="btn" type="submit" disabled={submitting || uploading}>
-                  {uploading ? 'Uploading...' : (submitting ? 'Submitting...' : 'Submit Item')}
+
+              <div className="form-row" style={{ marginTop: "8px" }}>
+                <button
+                  className="btn"
+                  type="submit"
+                  disabled={submitting || uploading}
+                >
+                  {uploading
+                    ? "Uploading..."
+                    : submitting
+                    ? "Submitting..."
+                    : "Submit Item"}
                 </button>
               </div>
-              {message && <div className={message.type === 'error' ? 'error' : 'success'}>{message.text}</div>}
+              {message && (
+                <div className={message.type === "error" ? "error" : "success"}>
+                  {message.text}
+                </div>
+              )}
             </div>
           </form>
         </>
       ) : (
         <p className="lead">
-          Please <Link to="/login" style={{color: 'var(--accent)', fontWeight: '500'}}>log in</Link> to post a lost or found item.
+          Please{" "}
+          <Link
+            to="/login"
+            style={{ color: "var(--accent)", fontWeight: "500" }}
+          >
+            log in
+          </Link>{" "}
+          to post a lost or found item.
         </p>
       )}
 
       <h2 className="subtitle">Recent Items</h2>
-      
+
       <div className="filter-container">
         <input
           type="search"
@@ -294,7 +358,7 @@ function Home() {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
-        <select 
+        <select
           className="type-filter"
           value={filterType}
           onChange={(e) => setFilterType(e.target.value)}
@@ -311,48 +375,73 @@ function Home() {
         <div>
           {items.length === 0 ? (
             <p className="empty">
-              {searchQuery || filterType !== 'all' ? 'No items match your search.' : 'No items yet.'}
+              {searchQuery || filterType !== "all"
+                ? "No items match your search."
+                : "No items yet."}
             </p>
           ) : (
             <ul className="items-list">
-              {items.map((it) => (
-                <li key={it._id || it.id} className="item">
-                  
-                  {it.image && (
-                    <img 
-                      src={process.env.NODE_ENV === 'development' ? `http://localhost:4000${it.image}` : it.image} 
-                      alt={it.title} 
-                      className="item-image" 
-                    />
-                  )}
-                  
-                  <div className="item-header">
-                    <h3>
-                      {it.title} <small style={{ color: '#374151' }}>({it.type})</small>
-                    </h3>
-                    
-                    {user && user.userId === it.user && (
+              {items.map((it) => {
+                const isOwner = user && user.userId === it.user;
+                const isResolved = it.status === "resolved";
+
+                return (
+                  <li key={it._id || it.id} className="item">
+                    {it.image && (
+                      <img
+                        src={
+                          process.env.NODE_ENV === "development"
+                            ? `http://localhost:4000${it.image}`
+                            : it.image
+                        }
+                        alt={it.title}
+                        className="item-image"
+                      />
+                    )}
+
+                    <div className="item-header">
+                      <h3>
+                        {it.title}{" "}
+                        <small style={{ color: "#374151" }}>({it.type})</small>
+                      </h3>
+
                       <div className="item-owner-actions">
                         <button
-                          className="btn-resolve"
-                          onClick={() => handleToggleResolve(it._id)}
+                          className={
+                            `status-button ${
+                              isResolved ? "status-resolved" : "status-open"
+                            } ` +
+                            (isOwner ? "status-clickable" : "status-readonly")
+                          }
+                          onClick={
+                            isOwner
+                              ? () => handleToggleResolve(it._id || it.id)
+                              : undefined
+                          }
+                          disabled={!isOwner}
+                          type="button"
                         >
-                          Resolve
+                          {isResolved ? "Resolved" : "Open"}
                         </button>
-                        <button 
-                          className="btn-delete"
-                          onClick={() => handleDelete(it._id)}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    )}
-                  </div>
 
-                  <div className="desc">{it.description}</div>
-                  <div className="meta">{it.location} · {it.date}</div>
-                </li>
-              ))}
+                        {isOwner && (
+                          <button
+                            className="btn-delete"
+                            onClick={() => handleDelete(it._id)}
+                          >
+                            Delete
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="desc">{it.description}</div>
+                    <div className="meta">
+                      {it.location} · {it.date}
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>
@@ -372,7 +461,9 @@ export default function App() {
     <BrowserRouter>
       <header className="header">
         <nav className="nav-container">
-          <Link to="/" className="nav-brand">Lost & Found</Link>
+          <Link to="/" className="nav-brand">
+            Lost & Found
+          </Link>
           <div className="nav-links">
             {user ? (
               <>
