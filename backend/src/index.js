@@ -193,6 +193,51 @@ app.delete('/api/items/:id', protect, async (req, res) => {
   }
 });
 
+// update an existing item (owner only)
+app.put('/api/items/:id', protect, async (req, res) => {
+  console.log(`[PUT] /api/items/${req.params.id}`);
+
+  // Check for DB connection
+  if (!useDb || mongoose.connection.readyState !== 1) {
+    return res.status(500).json({ message: 'Database not connected' });
+  }
+
+  const { title, type, description, location, date, image } = req.body;
+
+  try {
+    // find item in database
+    const item = await Item.findById(req.params.id);
+
+    // check if item exists
+    if (!item) {
+      return res.status(404).json({ message: 'Item not found' });
+    }
+
+    // compare item's 'user' field with the user from the token
+    if (item.user.toString() !== req.user.userId) {
+      return res.status(401).json({ message: 'User not authorized' });
+    }
+
+    // Apply partial updates (only if field is provided)
+    if (title !== undefined) item.title = title;
+    if (type !== undefined) item.type = type;
+    if (description !== undefined) item.description = description;
+    if (location !== undefined) item.location = location;
+    if (date !== undefined) item.date = date;
+    if (image !== undefined) item.image = image;
+
+    const updatedItem = await item.save();
+
+    res.status(200).json(updatedItem);
+  } catch (error) {
+    console.error('Update Error:', error);
+    if (error.name === 'CastError') {
+      return res.status(400).json({ message: 'Invalid item ID' });
+    }
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
 // toggle post status between open and resolved (owner of post only)
 app.put('/api/items/:id/toggle-resolve', protect, async (req, res) => {
   console.log(`[PUT] /api/items/${req.params.id}/toggle-resolve`);

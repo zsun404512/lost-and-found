@@ -16,6 +16,7 @@ function Home() {
   // Initial form state
   const initialFormState = { title: '', type: 'lost', description: '', location: '', date: '', image: null };
   const [form, setForm] = useState(initialFormState);
+  const [editingItem, setEditingItem] = useState(null);
   
   // State for file upload
   const [uploading, setUploading] = useState(false);
@@ -83,6 +84,34 @@ function Home() {
     setMessage(null);
   }
 
+  function handleStartEdit(item) {
+    setEditingItem(item);
+    setForm({
+      title: item.title || '',
+      type: item.type || 'lost',
+      description: item.description || '',
+      location: item.location || '',
+      date: item.date || '',
+      image: null,
+    });
+
+    const existingImage = item.image
+      ? (process.env.NODE_ENV === 'development' ? `http://localhost:4000${item.image}` : item.image)
+      : null;
+
+    setPreviewImage(existingImage);
+    setSelectedFile(null);
+    setMessage(null);
+  }
+
+  function handleCancelEdit() {
+    setEditingItem(null);
+    setForm(initialFormState);
+    setSelectedFile(null);
+    setPreviewImage(null);
+    setMessage(null);
+  }
+
   /**
    * Handle form submission.
    */
@@ -141,8 +170,15 @@ function Home() {
     try {
       const postData = { ...form, image: imageUrl }; 
 
-      const res = await fetch('/api/items', {
-        method: 'POST',
+      let url = '/api/items';
+      let method = 'POST';
+      if (editingItem) {
+        url = `/api/items/${editingItem._id}`;
+        method = 'PUT';
+      }
+
+      const res = await fetch(url, {
+        method,
         headers: { 
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
@@ -158,7 +194,11 @@ function Home() {
       const created = await res.json();
       setSearchQuery('');
       setFilterType('all');
-      setItems((p) => [created, ...p]); 
+      if (editingItem) {
+        setItems(prevItems => prevItems.map(item => item._id === created._id ? created : item));
+      } else {
+        setItems((p) => [created, ...p]); 
+      }
       
       setForm(initialFormState);
       setSelectedFile(null);
@@ -243,6 +283,18 @@ function Home() {
           <p className="lead">Report a lost or found item using the form below.</p>
           <form className="form" onSubmit={onSubmit}>
             <div>
+              {editingItem && (
+                <div className="edit-banner">
+                  <span>Editing item: <strong>{editingItem.title || 'Untitled item'}</strong></span>
+                  <button
+                    type="button"
+                    className="btn-edit-cancel"
+                    onClick={handleCancelEdit}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
               <input name="title" value={form.title} onChange={onChange} placeholder="Item title (required)" />
               <div className="form-row" style={{ marginTop: '8px' }}>
                 <select name="type" value={form.type} onChange={onChange}>
@@ -271,7 +323,12 @@ function Home() {
               
               <div className="form-row" style={{ marginTop: '8px' }}>
                 <button className="btn" type="submit" disabled={submitting || uploading}>
-                  {uploading ? 'Uploading...' : (submitting ? 'Submitting...' : 'Submit Item')}
+                  {uploading
+                    ? 'Uploading...'
+                    : (submitting
+                        ? (editingItem ? 'Saving...' : 'Submitting...')
+                        : (editingItem ? 'Save Changes' : 'Submit Item')
+                      )}
                 </button>
               </div>
               {message && <div className={message.type === 'error' ? 'error' : 'success'}>{message.text}</div>}
@@ -333,6 +390,12 @@ function Home() {
                     
                     {user && user.userId === it.user && (
                       <div className="item-owner-actions">
+                        <button
+                          className="btn-edit"
+                          onClick={() => handleStartEdit(it)}
+                        >
+                          Edit
+                        </button>
                         <button
                           className="btn-resolve"
                           onClick={() => handleToggleResolve(it._id)}
