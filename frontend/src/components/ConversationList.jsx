@@ -13,6 +13,7 @@ export default function ConversationList({
   };
 
   const list = Array.isArray(conversations) ? conversations : [];
+  const currentIdStr = currentUserId != null ? String(currentUserId) : '';
 
   return (
     <div className="conversation-list">
@@ -26,6 +27,24 @@ export default function ConversationList({
           isActive ? ' is-active' : ''
         }`;
 
+        const participants = Array.isArray(conversation.participants)
+          ? conversation.participants.map(String)
+          : [];
+
+        const explicitOtherEmail = conversation.otherParticipantEmail;
+        const otherIdFromField = conversation.otherParticipantId
+          ? String(conversation.otherParticipantId)
+          : null;
+
+        const derivedOtherId =
+          otherIdFromField || participants.find((pid) => pid !== currentIdStr) || null;
+
+        const label =
+          explicitOtherEmail ||
+          (derivedOtherId && derivedOtherId !== currentIdStr
+            ? derivedOtherId
+            : 'Conversation');
+
         return (
           <button
             key={id}
@@ -33,7 +52,7 @@ export default function ConversationList({
             className={className}
             onClick={() => handleSelect(id)}
           >
-            Conversation
+            {label}
           </button>
         );
       })}
