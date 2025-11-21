@@ -319,8 +319,25 @@ test('POST /api/messages/conversations/:id/messages validates message body', asy
   assert.equal(res.status, 400, 'Expected 400 for empty (trimmed) message body');
   assert.equal(typeof body.message, 'string', 'Error response should include a message string');
 
-  // Too-long body (>= 500 chars) should be rejected
-  const longBody = 'x'.repeat(600);
+  // 500-char body should be accepted
+  const maxAcceptedBody = 'x'.repeat(500);
+  res = await fetch(`${BASE_URL}/api/messages/conversations/${conversationId}/messages`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${userA.token}`,
+    },
+    body: JSON.stringify({ body: maxAcceptedBody }),
+  });
+  body = await res.json();
+
+  assert.ok(
+    res.status === 200 || res.status === 201,
+    `Expected 200 or 201 for 500-char message body, got ${res.status}: ${JSON.stringify(body)}`
+  );
+
+  // Too-long body (> 500 chars) should be rejected
+  const longBody = 'x'.repeat(501);
   res = await fetch(`${BASE_URL}/api/messages/conversations/${conversationId}/messages`, {
     method: 'POST',
     headers: {

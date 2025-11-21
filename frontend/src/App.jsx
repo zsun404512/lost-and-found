@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link, useNavigate } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
 import SignUpPage from './pages/SignUpPage';
+import MessagesPage from './pages/MessagesPage.jsx';
+import MessagesNavButton from './components/MessagesNavButton.jsx';
 import { useAuth } from './context/AuthContext';
 import { useDebounce } from './hooks/useDebounce';
 
@@ -10,6 +12,8 @@ import { useDebounce } from './hooks/useDebounce';
  */
 function Home() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -310,6 +314,13 @@ function Home() {
     }
   }
 
+  const handleMessageOwner = (item) => {
+    if (!user) return;
+    navigate('/messages', {
+      state: { participantId: item.user },
+    });
+  };
+
   return (
     <div className="app">
       <h1 className="title">Lost & Found Tracker</h1>
@@ -519,6 +530,16 @@ function Home() {
                             Delete
                           </button>
                         )}
+
+                        {!isOwner && user && (
+                          <button
+                            className="btn-message-owner"
+                            type="button"
+                            onClick={() => handleMessageOwner(it)}
+                          >
+                            Message owner
+                          </button>
+                        )}
                       </div>
                     </div>
 
@@ -541,11 +562,16 @@ function Home() {
  * App — top-level router component.
  * This is the part that was missing from your file.
  */
-export default function App() {
+function AppShell() {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleMessagesClick = () => {
+    navigate('/messages');
+  };
 
   return (
-    <BrowserRouter>
+    <>
       <header className="header">
         <nav className="nav-container">
           <Link to="/" className="nav-brand">
@@ -554,6 +580,11 @@ export default function App() {
           <div className="nav-links">
             {user ? (
               <>
+                <MessagesNavButton
+                  isLoggedIn={true}
+                  unreadCount={0}
+                  onClick={handleMessagesClick}
+                />
                 <span className="nav-user-email">{user.email}</span>
                 <button onClick={logout} className="nav-logout-button">
                   Logout
@@ -573,7 +604,16 @@ export default function App() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignUpPage />} />
+        <Route path="/messages" element={<MessagesPage />} />
       </Routes>
+    </>
+  );
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AppShell />
     </BrowserRouter>
   );
 }

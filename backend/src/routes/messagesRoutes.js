@@ -117,8 +117,8 @@ router.post('/conversations/:conversationId/messages', async (req, res) => {
       return res.status(400).json({ message: 'Message body is required' });
     }
 
-    if (text.length >= 500) {
-      return res.status(400).json({ message: 'Message body must be less than 500 characters' });
+    if (text.length > 500) {
+      return res.status(400).json({ message: 'Message body must be at most 500 characters' });
     }
 
     const message = await messageStore.addMessage(conversationId, currentUserId, text);
