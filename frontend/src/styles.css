@@ -301,6 +301,47 @@ textarea {
   color: #b91c1c;
 }
 
+/* Messages nav button (next to Logout) */
+.nav-messages-button {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-weight: 500;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+  border-radius: 6px;
+  padding: 4px 10px;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nav-messages-button:hover {
+  background: #fef9c3; /* soft golden */
+  border-color: #facc15;
+  color: #854d0e;
+}
+
+.nav-messages-badge {
+  min-width: 18px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #facc15;
+  color: #78350f;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* When on the Messages page, the Posts button reuses the nav-messages styles
+   but gets an accent-blue hover treatment instead of gold. */
+.nav-posts-button:hover {
+  background: #eff6ff;
+  border-color: var(--accent);
+  color: #1d4ed8;
+}
+
 .item-header {
   display: flex;
   justify-content: space-between;
@@ -385,6 +426,26 @@ textarea {
   background: #0891b2;
   border-color: #0e7490;
   color: #ffffff;
+}
+
+/* Message owner button — golden variant of edit button */
+.btn-message-owner {
+  background: #fef9c3; /* pale gold */
+  border: 1px solid #facc15;
+  color: #92400e;
+  font-weight: 500;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  border-radius: 6px;
+  padding: 3px 8px;
+  transition: all 0.2s ease;
+}
+
+.btn-message-owner:hover {
+  background: #facc15;
+  border-color: #eab308;
+  color: #78350f;
 }
 
 /* Banner that appears when editing an existing item */
@@ -560,6 +621,39 @@ input[type="file"]::file-selector-button:hover {
   border-radius: 8px;
   border: 1px solid var(--border);
   background: var(--card);
+}
+
+/* Message composer/Send button styling */
+.message-composer {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.message-composer-input {
+  flex: 1;
+}
+
+.message-composer-send {
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  font-family: inherit;
+  font-size: 14px;
+  transition: background-color 0.2s ease;
+}
+
+.message-composer-send:not([disabled]):hover {
+  background: #1d4ed8;
+}
+
+.message-composer-send[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .message-outgoing {
