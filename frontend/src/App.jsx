@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Link, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
+
 import LoginPage from './pages/LoginPage';
 import SignUpPage from './pages/SignUpPage';
 import MessagesPage from './pages/MessagesPage.jsx';
@@ -565,9 +566,16 @@ function Home() {
 function AppShell() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const onMessagesPage = location.pathname === '/messages';
 
   const handleMessagesClick = () => {
     navigate('/messages');
+  };
+
+  const handlePostsClick = () => {
+    navigate('/');
   };
 
   return (
@@ -580,12 +588,22 @@ function AppShell() {
           <div className="nav-links">
             {user ? (
               <>
-                <MessagesNavButton
-                  isLoggedIn={true}
-                  unreadCount={0}
-                  onClick={handleMessagesClick}
-                />
                 <span className="nav-user-email">{user.email}</span>
+                {onMessagesPage ? (
+                  <button
+                    type="button"
+                    className="nav-messages-button nav-posts-button"
+                    onClick={handlePostsClick}
+                  >
+                    Posts
+                  </button>
+                ) : (
+                  <MessagesNavButton
+                    isLoggedIn={true}
+                    unreadCount={0}
+                    onClick={handleMessagesClick}
+                  />
+                )}
                 <button onClick={logout} className="nav-logout-button">
                   Logout
                 </button>
