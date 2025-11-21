@@ -50,7 +50,7 @@ if (mongoUri) {
     })
     .catch((err) => {
       useDb = false;
-      console.error('Failed to connect to MongoDB:', err.message);
+      console.error('Failed to connect to MongoDB:', err);
     });
 } else {
   console.log('No MONGODB_URI set — running with in-memory fallback.');
