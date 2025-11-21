@@ -195,6 +195,19 @@ export default function MessagesPage() {
     );
   }
 
+  const activeConversation = conversations.find(
+    (conv) =>
+      conv &&
+      conv._id != null &&
+      selectedConversationId != null &&
+      String(conv._id) === String(selectedConversationId),
+  );
+
+  const otherParticipantEmail =
+    activeConversation && activeConversation.otherParticipantEmail
+      ? activeConversation.otherParticipantEmail
+      : null;
+
   return (
     <div className="app messages-page">
       <h1 className="title">Messages</h1>
@@ -226,18 +239,26 @@ export default function MessagesPage() {
                     <p className="empty">No messages yet.</p>
                   ) : (
                     <ul className="messages-list">
-                      {messages.map((msg) => (
-                        <li
-                          key={msg._id}
-                          className={
-                            msg.senderId === currentUserId
-                              ? 'message message-outgoing'
-                              : 'message message-incoming'
-                          }
-                        >
-                          <div className="message-body">{msg.body}</div>
-                        </li>
-                      ))}
+                      {messages.map((msg) => {
+                        const isCurrentUser = String(msg.senderId) === String(currentUserId);
+                        const authorLabel = isCurrentUser
+                          ? 'You'
+                          : otherParticipantEmail || 'Other user';
+
+                        return (
+                          <li
+                            key={msg._id}
+                            className={
+                              isCurrentUser
+                                ? 'message message-outgoing'
+                                : 'message message-incoming'
+                            }
+                          >
+                            <div className="message-author">{authorLabel}</div>
+                            <div className="message-body">{msg.body}</div>
+                          </li>
+                        );
+                      })}
                     </ul>
                   )}
                 </div>

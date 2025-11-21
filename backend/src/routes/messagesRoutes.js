@@ -1,5 +1,6 @@
 import express from 'express';
 import { createMessageStore } from '../messages/messageStore.js';
+import User from '../models/userModel.js';
 
 const router = express.Router();
 
@@ -30,8 +31,76 @@ router.post('/conversations', async (req, res) => {
 router.get('/conversations', async (req, res) => {
   try {
     const currentUserId = req.user && req.user.userId;
-    const conversations = await messageStore.listConversations(currentUserId);
-    return res.json(conversations);
+    const rawConversations = await messageStore.listConversations(currentUserId);
+
+    const conversations = Array.isArray(rawConversations)
+      ? rawConversations
+      : [];
+
+    const currentIdStr = String(currentUserId || '');
+
+    const otherIds = new Set();
+    const metaByConvId = new Map();
+
+    for (const conv of conversations) {
+      const participants = (conv.participants || []).map(String);
+      const otherId = participants.find((id) => id !== currentIdStr) || null;
+      const pairKey = participants.slice().sort().join(':');
+
+      metaByConvId.set(String(conv._id), {
+        participants,
+        otherId,
+        pairKey,
+      });
+
+      if (otherId) {
+        otherIds.add(otherId);
+      }
+    }
+
+    let emailById = new Map();
+
+    // Only attempt user lookups when using the MongoDB backend.
+    if (otherIds.size > 0 && process.env.MONGODB_URI) {
+      const ids = Array.from(otherIds);
+      const users = await User.find({ _id: { $in: ids } })
+        .select('_id email')
+        .lean();
+
+      emailById = new Map(
+        users.map((u) => [String(u._id), u.email]),
+      );
+    }
+
+    const seenPairKeys = new Set();
+    const enriched = [];
+
+    for (const conv of conversations) {
+      const meta = metaByConvId.get(String(conv._id));
+      if (!meta) continue;
+
+      const { participants, otherId, pairKey } = meta;
+
+      if (pairKey && seenPairKeys.has(pairKey)) {
+        // Avoid duplicate conversations for the same pair of participants.
+        continue;
+      }
+
+      if (pairKey) {
+        seenPairKeys.add(pairKey);
+      }
+
+      const otherEmail = otherId ? emailById.get(otherId) || null : null;
+
+      enriched.push({
+        ...conv,
+        participants,
+        otherParticipantId: otherId,
+        otherParticipantEmail: otherEmail,
+      });
+    }
+
+    return res.json(enriched);
   } catch (error) {
     console.error('List conversations error:', error);
     return res.status(500).json({ message: 'Server Error' });
