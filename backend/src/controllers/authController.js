@@ -56,7 +56,7 @@ export const loginUser = async(req, res) => {
   
   // 2. Check if email or password are missing
   if (!email || !password) {
-    res.status(400).json({ message: 'Please provide email and password' });
+    return res.status(400).json({ message: 'Please provide email and password' });
   }
 
   try {
@@ -65,7 +65,7 @@ export const loginUser = async(req, res) => {
 
     // 4. If user doesn't exist, send error
     if (!user) {
-        res.status(401).json({ message: 'Invalid credentials' });
+        return res.status(401).json({ message: 'Invalid credentials' });
     }
 
     // 5. If user *does* exist, compare their password with the hashed one
