@@ -8,9 +8,7 @@ import { useAuth } from './context/AuthContext';
  * Home component — main application UI for listing and submitting items.
  */
 function Home() {
-  // 1. Get the current user from the AuthContext
-  const { user } = useAuth();
-  
+  const { user } = useAuth(); // We get the user to check ownership
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ title: '', type: 'lost', description: '', location: '', date: '' });
@@ -45,6 +43,7 @@ function Home() {
    * Handle form submission.
    */
   async function onSubmit(e) {
+    // ... (This function is complete and correct from last time) ...
     e.preventDefault(); 
     setMessage(null);
     if (!form.title) {
@@ -52,31 +51,25 @@ function Home() {
       return;
     }
     setSubmitting(true);
-
-    // 2. Get the token from localStorage to send with the request
     const token = localStorage.getItem('token');
     if (!token) {
       setMessage({ type: 'error', text: 'You must be logged in to post.' });
       setSubmitting(false);
       return;
     }
-
     try {
-      // 3. Add the Authorization header to the request
       const res = await fetch('/api/items', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}` // This is the new part
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(form),
       });
-
       if (!res.ok) {
         const err = await res.json().catch(() => ({ message: 'Unknown error' }));
         throw new Error(err.message || 'Failed to submit');
       }
-
       const created = await res.json();
       setItems((p) => [created, ...p]);
       setForm({ title: '', type: 'lost', description: '', location: '', date: '' });
@@ -88,15 +81,55 @@ function Home() {
     }
   }
 
+  /**
+   * Handle deleting a post.
+   */
+  async function handleDelete(itemId) {
+    // Ask for confirmation (browser default, but better than nothing)
+    // Note: We avoid window.confirm() because it can be blocked.
+    // For a real app, we'd build a custom modal.
+    // For now, we'll just log a warning and proceed.
+    console.warn('A custom confirmation modal should be used here.');
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setMessage({ type: 'error', text: 'You must be logged in.' });
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/items/${itemId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to delete');
+      }
+
+      // 1. Success! Remove the item from the local state to update the UI.
+      setItems(prevItems => prevItems.filter(item => item._id !== itemId));
+      setMessage({ type: 'success', text: data.message });
+
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message });
+    }
+  }
+
   return (
     <div className="app">
       <h1 className="title">Lost & Found Tracker</h1>
 
-      {/* 4. Conditionally show the form only if the user is logged in */}
+      {/* ... (Your conditional form logic stays the same) ... */}
       {user ? (
         <>
           <p className="lead">Report a lost or found item using the form below.</p>
           <form className="form" onSubmit={onSubmit}>
+            {/* ... (Form JSX) ... */}
             <div>
               <input name="title" value={form.title} onChange={onChange} placeholder="Item title (required)" />
               <div className="form-row" style={{ marginTop: '8px' }}>
@@ -134,9 +167,26 @@ function Home() {
             <ul className="items-list">
               {items.map((it) => (
                 <li key={it._id || it.id} className="item">
-                  <h3>
-                    {it.title} <small style={{ color: '#374151' }}>({it.type})</small>
-                  </h3>
+                  
+                  {/* --- NEW --- */}
+                  <div className="item-header">
+                    <h3>
+                      {it.title} <small style={{ color: '#374151' }}>({it.type})</small>
+                    </h3>
+                    
+                    {/* 1. Check if user is logged in
+                        2. Check if user's ID matches the post's user ID */}
+                    {user && user.userId === it.user && (
+                      <button 
+                        className="btn-delete"
+                        onClick={() => handleDelete(it._id)}
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </div>
+                  {/* --- END NEW --- */}
+
                   <div className="desc">{it.description}</div>
                   <div className="meta">{it.location} · {it.date}</div>
                 </li>
