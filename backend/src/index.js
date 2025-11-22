@@ -125,6 +125,42 @@ app.get('/api/items/:id', async (req, res) => {
   return res.json(it);
 });
 
+// delete items
+app.delete('/api/items/:id', protect, async (req, res) => {
+  console.log(`[DELETE] /api/items/${req.params.id}`);
+
+  // Check for DB connection
+  if (!useDb || mongoose.connection.readyState !== 1) {
+    return res.status(500).json({ message: 'Database not connected' });
+  }
+
+  try {
+    // find item in database
+    const item = await Item.findById(req.params.id);
+
+    // check if item exists
+    if (!item) {
+      return res.status(404).json({ message: 'Item not found' });
+    }
+
+    // compare item's 'user' field with the user from the token
+    if (item.user.toString() !== req.user.userId) {
+      return res.status(401).json({ message: 'User not authorized' });
+    }
+
+    // delete the item
+    await Item.deleteOne({ _id: req.params.id });
+
+    res.status(200).json({ message: 'Item removed successfully' });
+  } catch (error) {
+    console.error('Delete Error:', error);
+    if (error.name === 'CastError') {
+      return res.status(400).json({ message: 'Invalid item ID' });
+    }
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
 // Serve static files...
 app.use(express.static(path.join(__dirname, '../../frontend/build')));
 app.get('*', (req, res) => {

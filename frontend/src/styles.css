@@ -262,3 +262,36 @@ textarea{
   border-color: #ef4444;
   color: #b91c1c;
 }
+
+.item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 6px;
+}
+
+.item-header h3 {
+  margin: 0;
+  flex-grow: 1; /* Allows title to take up space */
+}
+
+.btn-delete {
+  background: #fee2e2; /* Light red */
+  border: 1px solid #fca5a5; /* Red border */
+  color: #b91c1c; /* Dark red text */
+  font-weight: 500;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  border-radius: 6px;
+  padding: 3px 8px;
+  margin-left: 10px; /* Space from title */
+  flex-shrink: 0; /* Prevents button from shrinking */
+  transition: all 0.2s ease;
+}
+
+.btn-delete:hover {
+  background: #ef4444; /* Darker red */
+  border-color: #b91c1c;
+  color: #ffffff; /* White text */
+}
