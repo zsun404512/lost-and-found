@@ -13,6 +13,7 @@ function Home() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
+
   // Initial form state
   const initialFormState = {
     title: '',
@@ -23,6 +24,7 @@ function Home() {
     image: null,
   };
   const [form, setForm] = useState(initialFormState);
+  const [editingItem, setEditingItem] = useState(null);
 
   // State for file upload
   const [uploading, setUploading] = useState(false);
@@ -32,7 +34,7 @@ function Home() {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterType, setFilterType] = useState('all'); 
+  const [filterType, setFilterType] = useState('all');
   const debouncedSearch = useDebounce(searchQuery, 500);
 
   /**
@@ -89,6 +91,36 @@ function Home() {
     setMessage(null);
   }
 
+  function handleStartEdit(item) {
+    setEditingItem(item);
+    setForm({
+      title: item.title || '',
+      type: item.type || 'lost',
+      description: item.description || '',
+      location: item.location || '',
+      date: item.date || '',
+      image: null,
+    });
+
+    const existingImage = item.image
+      ? process.env.NODE_ENV === 'development'
+        ? `http://localhost:4000${item.image}`
+        : item.image
+      : null;
+
+    setPreviewImage(existingImage);
+    setSelectedFile(null);
+    setMessage(null);
+  }
+
+  function handleCancelEdit() {
+    setEditingItem(null);
+    setForm(initialFormState);
+    setSelectedFile(null);
+    setPreviewImage(null);
+    setMessage(null);
+  }
+
   /**
    * Handle form submission.
    */
@@ -121,7 +153,7 @@ function Home() {
         const res = await fetch('/api/upload', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${token}`
+            Authorization: `Bearer ${token}`,
           },
           body: formData,
         });
@@ -131,8 +163,12 @@ function Home() {
           throw new Error(data.message || 'Image upload failed');
         }
         imageUrl = data.image;
-        setMessage({ type: 'success', text: 'Image uploaded! Submitting post...' });
-
+        setMessage({
+          type: 'success',
+          text: editingItem
+            ? 'Image uploaded! Saving changes...'
+            : 'Image uploaded! Submitting post...',
+        });
       } catch (err) {
         setMessage({ type: 'error', text: err.message });
         setSubmitting(false);
@@ -143,28 +179,52 @@ function Home() {
       }
     }
 
-    // Step 2: Submit the post
+    // Step 2: Submit or update the post
     try {
       const postData = { ...form, image: imageUrl };
 
-      const res = await fetch('/api/items', {
-        method: 'POST',
+      let url = '/api/items';
+      let method = 'POST';
+      if (editingItem && editingItem._id) {
+        url = `/api/items/${editingItem._id}`;
+        method = 'PUT';
+      }
+
+      const res = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(postData),
       });
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({ message: 'Unknown error' }));
-        throw new Error(err.message || 'Failed to submit post');
+        throw new Error(
+          err.message ||
+            (editingItem ? 'Failed to update item' : 'Failed to submit post'),
+        );
       }
 
       const created = await res.json();
       setSearchQuery('');
       setFilterType('all');
-      setItems((p) => [created, ...p]);
+
+      if (editingItem && editingItem._id) {
+        setItems((prevItems) =>
+          prevItems.map((item) =>
+            (item._id || item.id) === (created._id || created.id)
+              ? created
+              : item,
+          ),
+        );
+        setEditingItem(null);
+        setMessage({ type: 'success', text: 'Item updated.' });
+      } else {
+        setItems((p) => [created, ...p]);
+        setMessage({ type: 'success', text: 'Item submitted.' });
+      }
 
       setForm(initialFormState);
       setSelectedFile(null);
@@ -172,10 +232,11 @@ function Home() {
       if (e.target.elements.image) {
         e.target.elements.image.value = null;
       }
-
-      setMessage({ type: 'success', text: 'Item submitted.' });
     } catch (err) {
-      setMessage({ type: 'error', text: err.message || 'Submission failed' });
+      setMessage({
+        type: 'error',
+        text: err.message || (editingItem ? 'Update failed' : 'Submission failed'),
+      });
     } finally {
       setSubmitting(false);
     }
@@ -195,14 +256,14 @@ function Home() {
       const res = await fetch(`/api/items/${itemId}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.message || 'Failed to delete');
       }
-      setItems(prevItems => prevItems.filter(item => item._id !== itemId));
+      setItems((prevItems) => prevItems.filter((item) => item._id !== itemId));
       setMessage({ type: 'success', text: data.message });
     } catch (err) {
       setMessage({ type: 'error', text: err.message });
@@ -236,15 +297,15 @@ function Home() {
         prevItems.map((item) =>
           (item._id || item.id) === (updatedItem._id || updatedItem.id)
             ? updatedItem
-            : item
-        )
+            : item,
+        ),
       );
 
       const statusText =
-        updatedItem.status === "resolved"
-          ? "Item marked as resolved."
-          : "Item reopened.";
-      setMessage({ type: "success", text: statusText });
+        updatedItem.status === 'resolved'
+          ? 'Item marked as resolved.'
+          : 'Item reopened.';
+      setMessage({ type: 'success', text: statusText });
     } catch (err) {
       setMessage({ type: "error", text: err.message });
     }
@@ -261,13 +322,29 @@ function Home() {
           </p>
           <form className="form" onSubmit={onSubmit}>
             <div>
+              {editingItem && (
+                <div className="edit-banner">
+                  <span>
+                    Editing item:{' '}
+                    <strong>{editingItem.title || 'Untitled item'}</strong>
+                  </span>
+                  <button
+                    type="button"
+                    className="btn-edit-cancel"
+                    onClick={handleCancelEdit}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+
               <input
                 name="title"
                 value={form.title}
                 onChange={onChange}
                 placeholder="Item title (required)"
               />
-              <div className="form-row" style={{ marginTop: "8px" }}>
+              <div className="form-row" style={{ marginTop: '8px' }}>
                 <select name="type" value={form.type} onChange={onChange}>
                   <option value="lost">I lost it on...</option>
                   <option value="found">I found it on...</option>
@@ -285,7 +362,7 @@ function Home() {
                 onChange={onChange}
                 placeholder="Location"
               />
-              <div className="form-row" style={{ marginTop: "8px" }}>
+              <div className="form-row" style={{ marginTop: '8px' }}>
                 <textarea
                   name="description"
                   value={form.description}
@@ -296,7 +373,7 @@ function Home() {
 
               <div
                 className="form-row"
-                style={{ marginTop: "8px", alignItems: "center" }}
+                style={{ marginTop: '8px', alignItems: 'center' }}
               >
                 <input
                   type="file"
@@ -314,21 +391,21 @@ function Home() {
                 )}
               </div>
 
-              <div className="form-row" style={{ marginTop: "8px" }}>
-                <button
-                  className="btn"
-                  type="submit"
-                  disabled={submitting || uploading}
-                >
+              <div className="form-row" style={{ marginTop: '8px' }}>
+                <button className="btn" type="submit" disabled={submitting || uploading}>
                   {uploading
-                    ? "Uploading..."
+                    ? 'Uploading...'
                     : submitting
-                    ? "Submitting..."
-                    : "Submit Item"}
+                    ? editingItem
+                      ? 'Saving...'
+                      : 'Submitting...'
+                    : editingItem
+                    ? 'Save Changes'
+                    : 'Submit Item'}
                 </button>
               </div>
               {message && (
-                <div className={message.type === "error" ? "error" : "success"}>
+                <div className={message.type === 'error' ? 'error' : 'success'}>
                   {message.text}
                 </div>
               )}
@@ -337,13 +414,13 @@ function Home() {
         </>
       ) : (
         <p className="lead">
-          Please{" "}
+          Please{' '}
           <Link
             to="/login"
-            style={{ color: "var(--accent)", fontWeight: "500" }}
+            style={{ color: 'var(--accent)', fontWeight: '500' }}
           >
             log in
-          </Link>{" "}
+          </Link>{' '}
           to post a lost or found item.
         </p>
       )}
@@ -357,11 +434,13 @@ function Home() {
           placeholder="Search by title or description..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
+          style={{ marginBottom: '16px' }}
         />
         <select
           className="type-filter"
           value={filterType}
           onChange={(e) => setFilterType(e.target.value)}
+          style={{ marginBottom: '16px' }}
         >
           <option value="all">All Items</option>
           <option value="lost">Lost Items</option>
@@ -375,22 +454,22 @@ function Home() {
         <div>
           {items.length === 0 ? (
             <p className="empty">
-              {searchQuery || filterType !== "all"
-                ? "No items match your search."
-                : "No items yet."}
+              {searchQuery || filterType !== 'all'
+                ? 'No items match your search.'
+                : 'No items yet.'}
             </p>
           ) : (
             <ul className="items-list">
               {items.map((it) => {
                 const isOwner = user && user.userId === it.user;
-                const isResolved = it.status === "resolved";
+                const isResolved = it.status === 'resolved';
 
                 return (
                   <li key={it._id || it.id} className="item">
                     {it.image && (
                       <img
                         src={
-                          process.env.NODE_ENV === "development"
+                          process.env.NODE_ENV === 'development'
                             ? `http://localhost:4000${it.image}`
                             : it.image
                         }
@@ -401,17 +480,27 @@ function Home() {
 
                     <div className="item-header">
                       <h3>
-                        {it.title}{" "}
-                        <small style={{ color: "#374151" }}>({it.type})</small>
+                        {it.title}{' '}
+                        <small style={{ color: '#374151' }}>({it.type})</small>
                       </h3>
 
                       <div className="item-owner-actions">
+                        {isOwner && (
+                          <button
+                            type="button"
+                            className="btn-edit"
+                            onClick={() => handleStartEdit(it)}
+                          >
+                            Edit
+                          </button>
+                        )}
+
                         <button
                           className={
                             `status-button ${
-                              isResolved ? "status-resolved" : "status-open"
+                              isResolved ? 'status-resolved' : 'status-open'
                             } ` +
-                            (isOwner ? "status-clickable" : "status-readonly")
+                            (isOwner ? 'status-clickable' : 'status-readonly')
                           }
                           onClick={
                             isOwner
@@ -421,12 +510,13 @@ function Home() {
                           disabled={!isOwner}
                           type="button"
                         >
-                          {isResolved ? "Resolved" : "Open"}
+                          {isResolved ? 'Resolved' : 'Open'}
                         </button>
 
                         {isOwner && (
                           <button
                             className="btn-delete"
+                            type="button"
                             onClick={() => handleDelete(it._id)}
                           >
                             Delete
