@@ -11,6 +11,7 @@ import { createRequire } from 'module';
 import authRoutes from './routes/authRoutes.js';
 import Item from './models/itemModel.js';
 import { protect } from './middleware/authMiddleware.js';
+import uploadRoutes from './routes/uploadRoutes.js';
 
 const require = createRequire(import.meta.url);
 dotenv.config();
@@ -27,7 +28,10 @@ app.use(cors());
 
 // --- API Routes ---
 app.use('/api/auth', authRoutes);
+app.use('/api/upload', uploadRoutes);
 
+// make upload folder public
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Try to connect to MongoDB...
 const mongoUri = process.env.MONGODB_URI;
@@ -66,30 +70,58 @@ app.get('/api', (req, res) => {
   res.json({ message: 'Hello from the Lost and Found API!' });
 });
 
-// GET /api/items (This route is still public, anyone can see items)
+// GET /api/items 
 app.get('/api/items', async (req, res) => {
   console.log('[GET] /api/items');
+  // search logic
+  const { search, type } = req.query;
+
+  const filter = {
+    status: 'open'
+  };
+
+  // add to filter if search query is provided
+  if (search) {
+    // This will search the 'title' and 'description' fields
+    // 'i' makes it case-insensitive
+    filter.$or = [
+      { title: { $regex: search, $options: 'i' } },
+      { description: { $regex: search, $options: 'i' } }
+    ];
+  }
+
+  // add to filter if title query is provided
+  if (type && type !== 'all') {
+    filter.type = type;
+  }
+
   if (useDb && mongoose.connection.readyState === 1) {
     try {
-      const docs = await Item.find().sort({ createdAt: -1 }).lean();
+      const docs = await Item.find(filter).sort({ createdAt: -1 }).lean();
       return res.json(docs);
     } catch (e) {
       return res.status(500).json({ error: e.message });
     }
   }
+
   return res.json(inMemoryItems);
 });
 
 // POST /api/items (Protected)
 app.post('/api/items', protect, async (req, res) => {
-  const payload = req.body;
-  console.log('[POST] /api/items - payload:', payload);
-  if (!payload || !payload.title) return res.status(400).json({ error: 'Missing item title' });
+  const { title, type, description, location, date, image } = req.body;
+  console.log('[POST] /api/items - payload:', req.body);
+  if (!title) return res.status(400).json({ error: 'Missing item title' });
 
   if (useDb && mongoose.connection.readyState === 1) {
     try {
       const doc = await Item.create({
-        ...payload,
+        title,
+        type,
+        description,
+        location,
+        date,
+        image,
         user: req.user.userId 
       });
       
@@ -154,6 +186,45 @@ app.delete('/api/items/:id', protect, async (req, res) => {
     res.status(200).json({ message: 'Item removed successfully' });
   } catch (error) {
     console.error('Delete Error:', error);
+    if (error.name === 'CastError') {
+      return res.status(400).json({ message: 'Invalid item ID' });
+    }
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
+// toggle post status between open and resolved (owner of post only)
+app.put('/api/items/:id/toggle-resolve', protect, async (req, res) => {
+  console.log(`[PUT] /api/items/${req.params.id}/toggle-resolve`);
+
+  // Check for DB connection
+  if (!useDb || mongoose.connection.readyState !== 1) {
+    return res.status(500).json({ message: 'Database not connected' });
+  }
+
+  try {
+    // find the item
+    const item = await Item.findById(req.params.id);
+
+    // check if item exists 
+    if (!item) {
+      return res.status(404).json({ message: 'Item not found' });
+    }
+
+    // compare item's 'user' field with the user from the token
+    if (item.user.toString() !== req.user.userId) {
+      return res.status(401).json({ message: 'User not authorized' });
+    }
+
+    // toggle status
+    item.status = item.status === 'open' ? 'resolved' : 'open';
+    await item.save();
+
+    // send back updated item to frontend
+    res.status(200).json(item);
+  }
+  catch (error) {
+    console.error('Resolve Toggle Error:', error);
     if (error.name === 'CastError') {
       return res.status(400).json({ message: 'Invalid item ID' });
     }
