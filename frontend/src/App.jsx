@@ -179,6 +179,11 @@ function Home() {
       }
     }
 
+    // If editing and no new image selected, keep the existing image
+    if (!selectedFile && editingItem && editingItem.image && !imageUrl) {
+      imageUrl = editingItem.image;
+    }
+
     // Step 2: Submit or update the post
     try {
       const postData = { ...form, image: imageUrl };
