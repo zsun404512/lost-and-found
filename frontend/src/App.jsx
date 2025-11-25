@@ -310,7 +310,18 @@ function Home() {
       setMessage({ type: "error", text: err.message });
     }
   }
-
+    // Format an ISO date-time string into something readable
+  function formatDateTime(isoString) {
+    if (!isoString) return '';
+    const d = new Date(isoString);
+    return d.toLocaleString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+  }
   return (
     <div className="app">
       <h1 className="title">Lost & Found Tracker</h1>
@@ -528,6 +539,14 @@ function Home() {
                     <div className="desc">{it.description}</div>
                     <div className="meta">
                       {it.location} · {it.date}
+                    </div>
+                    <div className="item-timestamps">
+                      <div className="item-timestamp-primary">
+                        Last updated: {formatDateTime(it.updatedAt || it.createdAt)}
+                      </div>
+                      <div className="item-timestamp-secondary">
+                        Created: {formatDateTime(it.createdAt)}
+                      </div>
                     </div>
                   </li>
                 );

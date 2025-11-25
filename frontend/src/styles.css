@@ -115,6 +115,24 @@ body {
   color: var(--muted);
 }
 
+.item-timestamps {
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.item-timestamp-primary {
+  font-size: 12px;
+  font-weight: 500;
+  color: #0f172a;
+}
+
+.item-timestamp-secondary {
+  font-size: 11px;
+  color: var(--muted);
+}
+
 .empty {
   color: var(--muted);
   font-style: italic;
