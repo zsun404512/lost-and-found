@@ -109,7 +109,7 @@ app.get('/api/items', async (req, res) => {
 
 // POST /api/items (Protected)
 app.post('/api/items', protect, async (req, res) => {
-  const { title, type, description, location, date, image } = req.body;
+  const { title, type, description, location, date, image, lat, lng } = req.body;
   console.log('[POST] /api/items - payload:', req.body);
   if (!title) return res.status(400).json({ error: 'Missing item title' });
 
@@ -122,6 +122,8 @@ app.post('/api/items', protect, async (req, res) => {
         location,
         date,
         image,
+        lat,
+        lng,
         user: req.user.userId 
       });
       
@@ -202,7 +204,7 @@ app.put('/api/items/:id', protect, async (req, res) => {
     return res.status(500).json({ message: 'Database not connected' });
   }
 
-  const { title, type, description, location, date, image } = req.body;
+  const { title, type, description, location, date, image, lat, lng } = req.body;
 
   try {
     // find item in database
@@ -225,6 +227,8 @@ app.put('/api/items/:id', protect, async (req, res) => {
     if (location !== undefined) item.location = location;
     if (date !== undefined) item.date = date;
     if (image !== undefined) item.image = image;
+    if (lat !== undefined) item.lat = lat;
+    if (lng !== undefined) item.lng = lng;
 
     const updatedItem = await item.save();
 
