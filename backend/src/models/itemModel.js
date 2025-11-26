@@ -7,6 +7,8 @@ const itemSchema = new mongoose.Schema({
   description: String,
   location: String,
   date: String,
+  lat: Number,
+  lng: Number,
   user: {
     type: mongoose.Schema.Types.ObjectId, // This links to a User's ID
     required: true,
