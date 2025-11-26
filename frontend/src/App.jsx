@@ -338,7 +338,7 @@ function Home() {
 
   return (
     <div className="app">
-      <h1 className="title">Lost & Found Tracker</h1>
+      <h1 className="title">UCLostAndfound</h1>
 
       {user ? (
         <>
