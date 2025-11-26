@@ -606,6 +606,9 @@ function Home() {
   );
 }
 
+const UCLA_CENTER = [34.0703, -118.4449];
+const UCLA_ZOOM = 16;
+
 function ItemsMap({ items }) {
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
@@ -616,7 +619,7 @@ function ItemsMap({ items }) {
 
     // Initialize map once
     if (!mapInstanceRef.current) {
-      const map = L.map(mapRef.current).setView([0, 0], 2);
+      const map = L.map(mapRef.current).setView(UCLA_CENTER, UCLA_ZOOM);
 
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution:
@@ -638,11 +641,11 @@ function ItemsMap({ items }) {
     const validItems = items.filter((it) => {
       const hasLat = typeof it.lat === 'number' && !Number.isNaN(it.lat);
       const hasLng = typeof it.lng === 'number' && !Number.isNaN(it.lng);
-      return hasLat && hasLng;
+      return hasLat && hasLng && it.status === 'open';
     });
 
     if (validItems.length === 0) {
-      map.setView([0, 0], 2);
+      map.setView(UCLA_CENTER, UCLA_ZOOM);
       return;
     }
 
