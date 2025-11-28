@@ -18,7 +18,7 @@ L.Icon.Default.mergeOptions({
  * Home component — main application UI for listing and submitting items.
  */
 function Home() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -224,6 +224,17 @@ function Home() {
         body: JSON.stringify(postData),
       });
 
+      if (res.status === 401) {
+        const data = await res.json().catch(() => ({}));
+        logout();
+        setMessage({
+          type: 'error',
+          text: data.message || 'Session expired. Please log in again.',
+        });
+        setSubmitting(false);
+        return;
+      }
+
       if (!res.ok) {
         const err = await res.json().catch(() => ({ message: 'Unknown error' }));
         throw new Error(
@@ -285,6 +296,16 @@ function Home() {
         },
       });
       const data = await res.json();
+
+      if (res.status === 401) {
+        logout();
+        setMessage({
+          type: 'error',
+          text: data.message || 'Session expired. Please log in again.',
+        });
+        return;
+      }
+
       if (!res.ok) {
         throw new Error(data.message || 'Failed to delete');
       }
@@ -314,6 +335,16 @@ function Home() {
       });
 
       const updatedItem = await res.json();
+
+      if (res.status === 401) {
+        logout();
+        setMessage({
+          type: 'error',
+          text: updatedItem.message || 'Session expired. Please log in again.',
+        });
+        return;
+      }
+
       if (!res.ok) {
         throw new Error(updatedItem.message || "Failed to update status");
       }
