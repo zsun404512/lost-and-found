@@ -104,6 +104,34 @@ function Home() {
    */
   function onChange(e) {
     const { name, value } = e.target;
+
+    if (name === 'lat' || name === 'lng') {
+      const pattern = /^-?\d*\.?\d*$/;
+      if (!pattern.test(value)) {
+        return;
+      }
+
+      const isLat = name === 'lat';
+      const min = isLat ? -90 : -180;
+      const max = isLat ? 90 : 180;
+
+      if (
+        value !== '' &&
+        value !== '-' &&
+        value !== '.' &&
+        value !== '-.'
+      ) {
+        const num = parseFloat(value);
+        if (Number.isNaN(num) || num < min || num > max) {
+          return;
+        }
+      }
+
+      setForm((p) => ({ ...p, [name]: value }));
+      setMessage(null);
+      return;
+    }
+
     setForm((p) => ({ ...p, [name]: value }));
     setMessage(null);
   }
@@ -430,14 +458,16 @@ function Home() {
                 onChange={onChange}
                 placeholder="Location"
               />
-              <div className="form-row" style={{ marginTop: '8px' }}>
+              <div className="form-row">
                 <input
+                  type="text"
                   name="lat"
                   value={form.lat}
                   onChange={onChange}
                   placeholder="Latitude (optional)"
                 />
                 <input
+                  type="text"
                   name="lng"
                   value={form.lng}
                   onChange={onChange}
