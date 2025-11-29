@@ -107,7 +107,47 @@ npx eslint . --fix
 ## Using MongoDB (optional)
 If you want the backend to persist items to MongoDB, set up a MongoDB instance (MongoDB Atlas or local) and provide the connection string in `backend/.env` as `MONGODB_URI`.
 
-Example steps with MongoDB Atlas:
+### Local MongoDB (Community Edition)
+If you prefer to run MongoDB locally on macOS using Homebrew:
+
+1. Install MongoDB Community Edition (one-time):
+
+    ```bash
+    brew tap mongodb/brew
+    brew install mongodb-community
+    ```
+
+2. Start MongoDB now and on login:
+
+    ```bash
+    brew services start mongodb-community
+    ```
+
+3. Verify the server is running:
+
+    ```bash
+    mongod --version
+    mongosh "mongodb://localhost:27017/lostandfound"
+    ```
+
+    You should see a `lostandfound>` prompt in `mongosh` without connection errors.
+
+4. Set the connection string in `backend/.env`:
+
+    ```bash
+    MONGODB_URI=mongodb://localhost:27017/lostandfound
+    ```
+
+    Then (from the repo root) start the app:
+
+    ```bash
+    npm run dev
+    ```
+
+    If the backend can connect, it will log `Connected to MongoDB` and use the `lostandfound` database for `/api/items`.
+
+### Cloud MongoDB (MongoDB Atlas)
+You can also use a cloud-hosted MongoDB instance via MongoDB Atlas. Here's the basic setup:
 
 1. Create a free cluster at https://www.mongodb.com/cloud/atlas and create a database user.
 2. Get the connection string and replace placeholders, e.g.:

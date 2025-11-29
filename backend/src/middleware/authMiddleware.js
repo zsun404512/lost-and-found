@@ -24,6 +24,9 @@ const protect = (req, res, next) => {
 
     } catch (error) {
       console.error('Token verification failed', error);
+      if (error.name === 'TokenExpiredError') {
+        return res.status(401).json({ message: 'Session expired. Please log in again.' });
+      }
       res.status(401).json({ message: 'Not authorized, token failed' });
     }
   }
