@@ -7,16 +7,26 @@ import MessagesPage from './pages/MessagesPage.jsx';
 import MessagesNavButton from './components/MessagesNavButton.jsx';
 import { useAuth } from './context/AuthContext';
 import { useDebounce } from './hooks/useDebounce';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: new URL('leaflet/dist/images/marker-icon-2x.png', import.meta.url).href,
+  iconUrl: new URL('leaflet/dist/images/marker-icon.png', import.meta.url).href,
+  shadowUrl: new URL('leaflet/dist/images/marker-shadow.png', import.meta.url).href,
+});
 
 /**
  * Home component — main application UI for listing and submitting items.
  */
 function Home() {
-  const { user } = useAuth();
   const navigate = useNavigate();
-
+  const { user, logout } = useAuth();
+  
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+
 
   // Initial form state
   const initialFormState = {
@@ -25,6 +35,8 @@ function Home() {
     description: '',
     location: '',
     date: '',
+    lat: '',
+    lng: '',
     image: null,
   };
   const [form, setForm] = useState(initialFormState);
@@ -39,6 +51,7 @@ function Home() {
   const [message, setMessage] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState('all');
+  const [viewMode, setViewMode] = useState('list');
   const debouncedSearch = useDebounce(searchQuery, 500);
 
   /**
@@ -103,6 +116,14 @@ function Home() {
       description: item.description || '',
       location: item.location || '',
       date: item.date || '',
+      lat:
+        item.lat !== undefined && item.lat !== null
+          ? String(item.lat)
+          : '',
+      lng:
+        item.lng !== undefined && item.lng !== null
+          ? String(item.lng)
+          : '',
       image: null,
     });
 
@@ -183,6 +204,11 @@ function Home() {
       }
     }
 
+    // If editing and no new image selected, keep the existing image
+    if (!selectedFile && editingItem && editingItem.image && !imageUrl) {
+      imageUrl = editingItem.image;
+    }
+
     // Step 2: Submit or update the post
     try {
       const postData = { ...form, image: imageUrl };
@@ -202,6 +228,17 @@ function Home() {
         },
         body: JSON.stringify(postData),
       });
+
+      if (res.status === 401) {
+        const data = await res.json().catch(() => ({}));
+        logout();
+        setMessage({
+          type: 'error',
+          text: data.message || 'Session expired. Please log in again.',
+        });
+        setSubmitting(false);
+        return;
+      }
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({ message: 'Unknown error' }));
@@ -264,6 +301,16 @@ function Home() {
         },
       });
       const data = await res.json();
+
+      if (res.status === 401) {
+        logout();
+        setMessage({
+          type: 'error',
+          text: data.message || 'Session expired. Please log in again.',
+        });
+        return;
+      }
+
       if (!res.ok) {
         throw new Error(data.message || 'Failed to delete');
       }
@@ -280,21 +327,31 @@ function Home() {
   async function handleToggleResolve(itemId) {
     const token = localStorage.getItem('token');
     if (!token) {
-      setMessage({ type: 'error', text: 'You must be logged in.' });
+      setMessage({ type: "error", text: "You must be logged in." });
       return;
     }
 
     try {
       const res = await fetch(`/api/items/${itemId}/toggle-resolve`, {
-        method: 'PUT',
+        method: "PUT",
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
 
       const updatedItem = await res.json();
+
+      if (res.status === 401) {
+        logout();
+        setMessage({
+          type: 'error',
+          text: updatedItem.message || 'Session expired. Please log in again.',
+        });
+        return;
+      }
+
       if (!res.ok) {
-        throw new Error(updatedItem.message || 'Failed to update status');
+        throw new Error(updatedItem.message || "Failed to update status");
       }
 
       setItems((prevItems) =>
@@ -311,7 +368,7 @@ function Home() {
           : 'Item reopened.';
       setMessage({ type: 'success', text: statusText });
     } catch (err) {
-      setMessage({ type: 'error', text: err.message });
+      setMessage({ type: "error", text: err.message });
     }
   }
 
@@ -324,11 +381,13 @@ function Home() {
 
   return (
     <div className="app">
-      <h1 className="title">Lost & Found Tracker</h1>
+      <h1 className="title">UCLostAndfound</h1>
 
       {user ? (
         <>
-          <p className="lead">Report a lost or found item using the form below.</p>
+          <p className="lead">
+            Report a lost or found item using the form below.
+          </p>
           <form className="form" onSubmit={onSubmit}>
             <div>
               {editingItem && (
@@ -371,6 +430,20 @@ function Home() {
                 onChange={onChange}
                 placeholder="Location"
               />
+              <div className="form-row" style={{ marginTop: '8px' }}>
+                <input
+                  name="lat"
+                  value={form.lat}
+                  onChange={onChange}
+                  placeholder="Latitude (optional)"
+                />
+                <input
+                  name="lng"
+                  value={form.lng}
+                  onChange={onChange}
+                  placeholder="Longitude (optional)"
+                />
+              </div>
               <div className="form-row" style={{ marginTop: '8px' }}>
                 <textarea
                   name="description"
@@ -457,6 +530,31 @@ function Home() {
         </select>
       </div>
 
+      <div className="view-toggle">
+        <button
+          type="button"
+          className={
+            viewMode === 'list'
+              ? 'view-toggle-button active'
+              : 'view-toggle-button'
+          }
+          onClick={() => setViewMode('list')}
+        >
+          List view
+        </button>
+        <button
+          type="button"
+          className={
+            viewMode === 'map'
+              ? 'view-toggle-button active'
+              : 'view-toggle-button'
+          }
+          onClick={() => setViewMode('map')}
+        >
+          Map view
+        </button>
+      </div>
+
       {loading ? (
         <p className="loading">Loading...</p>
       ) : (
@@ -467,6 +565,8 @@ function Home() {
                 ? 'No items match your search.'
                 : 'No items yet.'}
             </p>
+          ) : viewMode === 'map' ? (
+            <ItemsMap items={items} />
           ) : (
             <ul className="items-list">
               {items.map((it) => {
@@ -557,6 +657,70 @@ function Home() {
       )}
     </div>
   );
+}
+
+const UCLA_CENTER = [34.0703, -118.4449];
+const UCLA_ZOOM = 16;
+
+function ItemsMap({ items }) {
+  const mapRef = useRef(null);
+  const mapInstanceRef = useRef(null);
+  const markersLayerRef = useRef(null);
+
+  useEffect(() => {
+    if (!mapRef.current) return;
+
+    // Initialize map once
+    if (!mapInstanceRef.current) {
+      const map = L.map(mapRef.current).setView(UCLA_CENTER, UCLA_ZOOM);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      }).addTo(map);
+
+      mapInstanceRef.current = map;
+    }
+
+    const map = mapInstanceRef.current;
+
+    // Create or clear markers layer
+    if (!markersLayerRef.current) {
+      markersLayerRef.current = L.layerGroup().addTo(map);
+    } else {
+      markersLayerRef.current.clearLayers();
+    }
+
+    const validItems = items.filter((it) => {
+      const hasLat = typeof it.lat === 'number' && !Number.isNaN(it.lat);
+      const hasLng = typeof it.lng === 'number' && !Number.isNaN(it.lng);
+      return hasLat && hasLng && it.status === 'open';
+    });
+
+    if (validItems.length === 0) {
+      map.setView(UCLA_CENTER, UCLA_ZOOM);
+      return;
+    }
+
+    const bounds = L.latLngBounds([]);
+
+    validItems.forEach((item) => {
+      const position = [item.lat, item.lng];
+      const marker = L.marker(position).addTo(markersLayerRef.current);
+      marker.bindPopup(
+        `<div><strong>${item.title || ''}</strong><br/>${
+          item.description || ''
+        }<br/>${item.date || ''}</div>`,
+      );
+      bounds.extend(position);
+    });
+
+    if (bounds.isValid()) {
+      map.fitBounds(bounds, { padding: [40, 40] });
+    }
+  }, [items]);
+
+  return <div className="map-container" ref={mapRef} />;
 }
 
 /**
