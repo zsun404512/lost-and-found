@@ -1,5 +1,3 @@
-import React from 'react';
-
 export default function MessagesNavButton({ isLoggedIn, unreadCount, onClick }) {
   if (!isLoggedIn) {
     return null;

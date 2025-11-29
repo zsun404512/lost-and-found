@@ -1,12 +1,16 @@
-import React, { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { BrowserRouter, Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
 
 import LoginPage from './pages/LoginPage';
 import SignUpPage from './pages/SignUpPage';
 import MessagesPage from './pages/MessagesPage.jsx';
 import MessagesNavButton from './components/MessagesNavButton.jsx';
+import ItemForm from './components/ItemForm.jsx';
+import ItemsToolbar from './components/ItemsToolbar.jsx';
+import ItemsList from './components/ItemsList.jsx';
 import { useAuth } from './context/AuthContext';
-import { useDebounce } from './hooks/useDebounce';
+import { useItems } from './hooks/useItems';
+import { useItemForm } from './hooks/useItemForm';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
@@ -17,370 +21,46 @@ L.Icon.Default.mergeOptions({
   shadowUrl: new URL('leaflet/dist/images/marker-shadow.png', import.meta.url).href,
 });
 
-/**
- * Home component — main application UI for listing and submitting items.
- */
 function Home() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
 
-
-  // Initial form state
-  const initialFormState = {
-    title: '',
-    type: 'lost',
-    description: '',
-    location: '',
-    date: '',
-    lat: '',
-    lng: '',
-    image: null,
-  };
-  const [form, setForm] = useState(initialFormState);
-  const [editingItem, setEditingItem] = useState(null);
-
-  // State for file upload
-  const [uploading, setUploading] = useState(false);
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [previewImage, setPreviewImage] = useState(null);
-
-  const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterType, setFilterType] = useState('all');
-  const [viewMode, setViewMode] = useState('list');
-  const debouncedSearch = useDebounce(searchQuery, 500);
 
-  /**
-   * Load items from the backend.
-   */
-  useEffect(() => {
-    setLoading(true);
+  const itemsState = useItems({ setMessage });
+  const {
+    items,
+    loading,
+    searchQuery,
+    setSearchQuery,
+    filterType,
+    setFilterType,
+    viewMode,
+    setViewMode,
+  } = itemsState;
 
-    const params = new URLSearchParams();
-    if (debouncedSearch) {
-      params.append('search', debouncedSearch);
-    }
-    if (filterType !== 'all') {
-      params.append('type', filterType);
-    }
-
-    const queryString = params.toString();
-    const url = `/api/items${queryString ? `?${queryString}` : ''}`;
-    // console.log('Fetching:', url);
-
-    fetch(url)
-      .then((r) => r.json())
-      .then((data) => setItems(data))
-      .catch((err) => {
-        if (err.name === 'AbortError') return;
-        setItems([]);
-        setMessage({ type: 'error', text: 'Failed to load items' });
-      })
-      .finally(() => setLoading(false));
-  }, [debouncedSearch, filterType]);
-
-  // Special handler for file input
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        setMessage({ type: 'error', text: 'File is too large (Max 5MB)' });
-        return;
-      }
-      setSelectedFile(file);
-      setPreviewImage(URL.createObjectURL(file));
-    } else {
-      setSelectedFile(null);
-      setPreviewImage(null);
-    }
-  };
-
-  /**
-   * Handle form input changes.
-   */
-  function onChange(e) {
-    const { name, value } = e.target;
-    setForm((p) => ({ ...p, [name]: value }));
-    setMessage(null);
-  }
-
-  function handleStartEdit(item) {
-    setEditingItem(item);
-    setForm({
-      title: item.title || '',
-      type: item.type || 'lost',
-      description: item.description || '',
-      location: item.location || '',
-      date: item.date || '',
-      lat:
-        item.lat !== undefined && item.lat !== null
-          ? String(item.lat)
-          : '',
-      lng:
-        item.lng !== undefined && item.lng !== null
-          ? String(item.lng)
-          : '',
-      image: null,
-    });
-
-    const existingImage = item.image
-      ? process.env.NODE_ENV === 'development'
-        ? `http://localhost:4000${item.image}`
-        : item.image
-      : null;
-
-    setPreviewImage(existingImage);
-    setSelectedFile(null);
-    setMessage(null);
-  }
-
-  function handleCancelEdit() {
-    setEditingItem(null);
-    setForm(initialFormState);
-    setSelectedFile(null);
-    setPreviewImage(null);
-    setMessage(null);
-  }
-
-  /**
-   * Handle form submission.
-   */
-  async function onSubmit(e) {
-    e.preventDefault();
-    setMessage(null);
-    if (!form.title) {
-      setMessage({ type: 'error', text: 'Title is required' });
-      return;
-    }
-    setSubmitting(true);
-    const token = localStorage.getItem('token');
-    if (!token) {
-      setMessage({ type: 'error', text: 'You must be logged in to post.' });
-      setSubmitting(false);
-      return;
-    }
-
-    let imageUrl = '';
-
-    // Step 1: Upload image if selected
-    if (selectedFile) {
-      setUploading(true);
-      setMessage({ type: 'success', text: 'Uploading image...' });
-
-      const formData = new FormData();
-      formData.append('image', selectedFile);
-
-      try {
-        const res = await fetch('/api/upload', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          body: formData,
-        });
-
-        const data = await res.json();
-        if (!res.ok) {
-          throw new Error(data.message || 'Image upload failed');
-        }
-        imageUrl = data.image;
-        setMessage({
-          type: 'success',
-          text: editingItem
-            ? 'Image uploaded! Saving changes...'
-            : 'Image uploaded! Submitting post...',
-        });
-      } catch (err) {
-        setMessage({ type: 'error', text: err.message });
-        setSubmitting(false);
-        setUploading(false);
-        return;
-      } finally {
-        setUploading(false);
-      }
-    }
-
-    // If editing and no new image selected, keep the existing image
-    if (!selectedFile && editingItem && editingItem.image && !imageUrl) {
-      imageUrl = editingItem.image;
-    }
-
-    // Step 2: Submit or update the post
-    try {
-      const postData = { ...form, image: imageUrl };
-
-      let url = '/api/items';
-      let method = 'POST';
-      if (editingItem && editingItem._id) {
-        url = `/api/items/${editingItem._id}`;
-        method = 'PUT';
-      }
-
-      const res = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(postData),
-      });
-
-      if (res.status === 401) {
-        const data = await res.json().catch(() => ({}));
-        logout();
-        setMessage({
-          type: 'error',
-          text: data.message || 'Session expired. Please log in again.',
-        });
-        setSubmitting(false);
-        return;
-      }
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ message: 'Unknown error' }));
-        throw new Error(
-          err.message ||
-            (editingItem ? 'Failed to update item' : 'Failed to submit post'),
-        );
-      }
-
-      const created = await res.json();
-      setSearchQuery('');
-      setFilterType('all');
-
-      if (editingItem && editingItem._id) {
-        setItems((prevItems) =>
-          prevItems.map((item) =>
-            (item._id || item.id) === (created._id || created.id)
-              ? created
-              : item,
-          ),
-        );
-        setEditingItem(null);
-        setMessage({ type: 'success', text: 'Item updated.' });
-      } else {
-        setItems((p) => [created, ...p]);
-        setMessage({ type: 'success', text: 'Item submitted.' });
-      }
-
-      setForm(initialFormState);
-      setSelectedFile(null);
-      setPreviewImage(null);
-      if (e.target.elements.image) {
-        e.target.elements.image.value = null;
-      }
-    } catch (err) {
-      setMessage({
-        type: 'error',
-        text: err.message || (editingItem ? 'Update failed' : 'Submission failed'),
-      });
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  /**
-   * Handle deleting a post.
-   */
-  async function handleDelete(itemId) {
-    const confirmedDelete = window.confirm('Are you sure you want to delete this item?');
-    if (!confirmedDelete) {
-      return;
-    }
-    const token = localStorage.getItem('token');
-    if (!token) {
-      setMessage({ type: 'error', text: 'You must be logged in.' });
-      return;
-    }
-    try {
-      const res = await fetch(`/api/items/${itemId}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      const data = await res.json();
-
-      if (res.status === 401) {
-        logout();
-        setMessage({
-          type: 'error',
-          text: data.message || 'Session expired. Please log in again.',
-        });
-        return;
-      }
-
-      if (!res.ok) {
-        throw new Error(data.message || 'Failed to delete');
-      }
-      setItems((prevItems) => prevItems.filter((item) => item._id !== itemId));
-      setMessage({ type: 'success', text: data.message });
-    } catch (err) {
-      setMessage({ type: 'error', text: err.message });
-    }
-  }
-
-  /**
-   * Handle toggling a post's 'resolved' status.
-   */
-  async function handleToggleResolve(itemId) {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      setMessage({ type: "error", text: "You must be logged in." });
-      return;
-    }
-
-    try {
-      const res = await fetch(`/api/items/${itemId}/toggle-resolve`, {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const updatedItem = await res.json();
-
-      if (res.status === 401) {
-        logout();
-        setMessage({
-          type: 'error',
-          text: updatedItem.message || 'Session expired. Please log in again.',
-        });
-        return;
-      }
-
-      if (!res.ok) {
-        throw new Error(updatedItem.message || "Failed to update status");
-      }
-
-      setItems((prevItems) =>
-        prevItems.map((item) =>
-          (item._id || item.id) === (updatedItem._id || updatedItem.id)
-            ? updatedItem
-            : item,
-        ),
-      );
-
-      const statusText =
-        updatedItem.status === 'resolved'
-          ? 'Item marked as resolved.'
-          : 'Item reopened.';
-      setMessage({ type: 'success', text: statusText });
-    } catch (err) {
-      setMessage({ type: "error", text: err.message });
-    }
-  }
-
-  const handleMessageOwner = (item) => {
-    if (!user) return;
-    navigate('/messages', {
-      state: { participantId: item.user },
-    });
-  };
+  const {
+    form,
+    editingItem,
+    uploading,
+    previewImage,
+    submitting,
+    handleChange,
+    handleStartEdit,
+    handleCancelEdit,
+    handleFileChange,
+    handleSubmit,
+    handleDelete,
+    handleToggleResolve,
+    handleMessageOwner,
+  } = useItemForm({
+    itemsState,
+    message,
+    setMessage,
+    user,
+    logout,
+    navigate,
+  });
 
   return (
     <div className="app">
@@ -391,111 +71,18 @@ function Home() {
           <p className="lead">
             Report a lost or found item using the form below.
           </p>
-          <form className="form" onSubmit={onSubmit}>
-            <div>
-              {editingItem && (
-                <div className="edit-banner">
-                  <span>
-                    Editing item:{' '}
-                    <strong>{editingItem.title || 'Untitled item'}</strong>
-                  </span>
-                  <button
-                    type="button"
-                    className="btn-edit-cancel"
-                    onClick={handleCancelEdit}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              )}
-
-              <input
-                name="title"
-                value={form.title}
-                onChange={onChange}
-                placeholder="Item title (required)"
-              />
-              <div className="form-row" style={{ marginTop: '8px' }}>
-                <select name="type" value={form.type} onChange={onChange}>
-                  <option value="lost">I lost it on...</option>
-                  <option value="found">I found it on...</option>
-                </select>
-                <input
-                  type="date"
-                  name="date"
-                  value={form.date}
-                  onChange={onChange}
-                />
-              </div>
-              <input
-                name="location"
-                value={form.location}
-                onChange={onChange}
-                placeholder="Location"
-              />
-              <div className="form-row" style={{ marginTop: '8px' }}>
-                <input
-                  name="lat"
-                  value={form.lat}
-                  onChange={onChange}
-                  placeholder="Latitude (optional)"
-                />
-                <input
-                  name="lng"
-                  value={form.lng}
-                  onChange={onChange}
-                  placeholder="Longitude (optional)"
-                />
-              </div>
-              <div className="form-row" style={{ marginTop: '8px' }}>
-                <textarea
-                  name="description"
-                  value={form.description}
-                  onChange={onChange}
-                  placeholder="Description"
-                />
-              </div>
-
-              <div
-                className="form-row"
-                style={{ marginTop: '8px', alignItems: 'center' }}
-              >
-                <input
-                  type="file"
-                  name="image"
-                  accept="image/png, image/jpeg, image/jpg"
-                  onChange={handleFileChange}
-                  className="file-input"
-                />
-                {previewImage && (
-                  <img
-                    src={previewImage}
-                    alt="Preview"
-                    className="image-preview"
-                  />
-                )}
-              </div>
-
-              <div className="form-row" style={{ marginTop: '8px' }}>
-                <button className="btn" type="submit" disabled={submitting || uploading}>
-                  {uploading
-                    ? 'Uploading...'
-                    : submitting
-                    ? editingItem
-                      ? 'Saving...'
-                      : 'Submitting...'
-                    : editingItem
-                    ? 'Save Changes'
-                    : 'Submit Item'}
-                </button>
-              </div>
-              {message && (
-                <div className={message.type === 'error' ? 'error' : 'success'}>
-                  {message.text}
-                </div>
-              )}
-            </div>
-          </form>
+          <ItemForm
+            form={form}
+            editingItem={editingItem}
+            uploading={uploading}
+            previewImage={previewImage}
+            submitting={submitting}
+            message={message}
+            onChange={handleChange}
+            onSubmit={handleSubmit}
+            onCancelEdit={handleCancelEdit}
+            onFileChange={handleFileChange}
+          />
         </>
       ) : (
         <p className="lead">
@@ -512,57 +99,14 @@ function Home() {
 
       <h2 className="subtitle">Recent Items</h2>
 
-      <div className="filter-container">
-        <label style={{ display: 'none' }} htmlFor="search-input">
-          Search
-        </label>        
-        <input
-          id="search-input"
-          type="search"
-          className="search-bar"
-          placeholder="Search by title or description..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          style={{ marginBottom: '16px' }}
-        />
-        <select
-          className="type-filter"
-          value={filterType}
-          onChange={(e) => setFilterType(e.target.value)}
-          style={{ marginBottom: '16px' }}
-        >
-          <option value="all">All Items</option>
-          <option value="lost">Lost Items</option>
-          <option value="found">Found Items</option>
-        </select>
-      </div>
-
-      <div className="view-toggle">
-        <button
-          type="button"
-          className={
-            viewMode === 'list'
-              ? 'view-toggle-button active'
-              : 'view-toggle-button'
-          }
-          onClick={() => setViewMode('list')}
-          aria-pressed={viewMode === 'list'}
-        >
-          List view
-        </button>
-        <button
-          type="button"
-          className={
-            viewMode === 'map'
-              ? 'view-toggle-button active'
-              : 'view-toggle-button'
-          }
-          onClick={() => setViewMode('map')}
-          aria-pressed={viewMode === 'map'}
-        >
-          Map view
-        </button>
-      </div>
+      <ItemsToolbar
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        filterType={filterType}
+        onFilterChange={setFilterType}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+      />
 
       {loading ? (
         <p className="loading">Loading...</p>
@@ -572,96 +116,21 @@ function Home() {
             <p className="empty">
               {searchQuery || filterType !== 'all'
                 ? 'No items match your search.'
-                : user ? 'No items yet. Be the first to post!' 
+                : user
+                ? 'No items yet. Be the first to post!'
                 : 'No items yet.'}
             </p>
           ) : viewMode === 'map' ? (
             <ItemsMap items={items} />
           ) : (
-            <ul className="items-list">
-              {items.map((it) => {
-                const isOwner = user && user.userId === it.user;
-                const isResolved = it.status === 'resolved';
-
-                return (
-                  <li key={it._id || it.id} className="item">
-                    {it.image && (
-                      <img
-                        src={
-                          process.env.NODE_ENV === 'development'
-                            ? `http://localhost:4000${it.image}`
-                            : it.image
-                        }
-                        alt={it.title}
-                        className="item-image"
-                      />
-                    )}
-
-                    <div className="item-header">
-                      <h3>
-                        {it.title}{' '}
-                        <small style={{ color: '#374151' }}>({it.type})</small>
-                      </h3>
-
-                      <div className="item-owner-actions">
-                        {isOwner && (
-                          <button
-                            type="button"
-                            className="btn-edit"
-                            onClick={() => handleStartEdit(it)}
-                          >
-                            Edit
-                          </button>
-                        )}
-
-                        <button
-                          className={
-                            `status-button ${
-                              isResolved ? 'status-resolved' : 'status-open'
-                            } ` +
-                            (isOwner ? 'status-clickable' : 'status-readonly')
-                          }
-                          onClick={
-                            isOwner
-                              ? () => handleToggleResolve(it._id || it.id)
-                              : undefined
-                          }
-                          disabled={!isOwner}
-                          type="button"
-                        >
-                          {isResolved ? 'Resolved' : 'Open'}
-                        </button>
-
-                        {isOwner && (
-                          <button
-                            className="btn-delete"
-                            type="button"
-                            onClick={() => handleDelete(it._id)}
-                          >
-                            Delete
-                          </button>
-                        )}
-
-                        {!isOwner && user && (
-                          <button
-                            className="btn-message-owner"
-                            type="button"
-                            onClick={() => handleMessageOwner(it)}
-                          >
-                            Message owner
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="desc">{it.description}</div>
-                    <div className="meta">
-                      {it.location} · {it.date}
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
+            <ItemsList
+              items={items}
+              user={user}
+              onEdit={handleStartEdit}
+              onToggleResolve={handleToggleResolve}
+              onDelete={handleDelete}
+              onMessageOwner={handleMessageOwner}
+            />
           )}
         </div>
       )}
@@ -680,7 +149,7 @@ function ItemsMap({ items }) {
   useEffect(() => {
     if (!mapRef.current) return;
 
-    // Initialize map once
+    // initialize map once
     if (!mapInstanceRef.current) {
       const map = L.map(mapRef.current).setView(UCLA_CENTER, UCLA_ZOOM);
 
@@ -694,7 +163,7 @@ function ItemsMap({ items }) {
 
     const map = mapInstanceRef.current;
 
-    // Create or clear markers layer
+    // create or clear markers layer
     if (!markersLayerRef.current) {
       markersLayerRef.current = L.layerGroup().addTo(map);
     } else {
@@ -733,10 +202,8 @@ function ItemsMap({ items }) {
   return <div className="map-container" ref={mapRef} />;
 }
 
-/**
- * App — top-level router component.
- * This is the part that was missing from your file.
- */
+// serves as router
+
 function AppShell() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
