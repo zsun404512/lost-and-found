@@ -1,3 +1,4 @@
 module.exports = {
-  default: "--publish-quiet --require backend/test/steps/**/*.cjs --require backend/test/support/**/*.cjs backend/test/features/**/*.feature",
+  // Run from backend/; paths are relative to backend/test
+  default: "--require test/steps/**/*.cjs --require test/support/**/*.cjs test/features/**/*.feature",
 };

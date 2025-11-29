@@ -23,6 +23,8 @@
   },
   "devDependencies": {
     "nodemon": "^3.1.10",
-    "@cucumber/cucumber": "^11.0.0"
+    "@cucumber/cucumber": "^11.0.0",
+    "supertest": "^7.1.1",
+    "chai": "^4.3.10"
   }
 }
