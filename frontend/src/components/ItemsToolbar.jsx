@@ -9,7 +9,11 @@ export default function ItemsToolbar({
   return (
     <>
       <div className="filter-container">
+        <label style={{ display: 'none' }} htmlFor="search-input">
+          Search
+        </label>
         <input
+          id="search-input"
           type="search"
           className="search-bar"
           placeholder="Search by title or description..."
@@ -38,6 +42,7 @@ export default function ItemsToolbar({
               : 'view-toggle-button'
           }
           onClick={() => onViewModeChange('list')}
+          aria-pressed={viewMode === 'list'}
         >
           List view
         </button>
@@ -49,6 +54,7 @@ export default function ItemsToolbar({
               : 'view-toggle-button'
           }
           onClick={() => onViewModeChange('map')}
+          aria-pressed={viewMode === 'map'}
         >
           Map view
         </button>

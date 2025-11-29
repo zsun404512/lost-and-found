@@ -116,6 +116,8 @@ function Home() {
             <p className="empty">
               {searchQuery || filterType !== 'all'
                 ? 'No items match your search.'
+                : user
+                ? 'No items yet. Be the first to post!'
                 : 'No items yet.'}
             </p>
           ) : viewMode === 'map' ? (
