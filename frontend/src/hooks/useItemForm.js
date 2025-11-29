@@ -256,7 +256,10 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
   }
 
   async function handleDelete(itemId) {
-    console.warn('A custom confirmation modal should be used here.');
+    const confirmedDelete = window.confirm('Are you sure you want to delete this item?');
+    if (!confirmedDelete) {
+      return;
+    }
     const token = localStorage.getItem('token');
     if (!token) {
       setMessage({ type: 'error', text: 'You must be logged in.' });
