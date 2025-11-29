@@ -7,6 +7,7 @@ export function useItems({ setMessage } = {}) {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [viewMode, setViewMode] = useState('list');
+  const [statusFilter, setStatusFilter] = useState('open');
 
   const debouncedSearch = useDebounce(searchQuery, 500);
 
@@ -20,7 +21,13 @@ export function useItems({ setMessage } = {}) {
     if (filterType !== 'all') {
       params.append('type', filterType);
     }
-
+    if (statusFilter === 'open') {
+      params.append('status', 'open');
+    } else if (statusFilter === 'resolved') {
+      params.append('status', 'resolved');
+    } else {
+      params.append('status', 'all');
+    }
     const queryString = params.toString();
     const url = `/api/items${queryString ? `?${queryString}` : ''}`;
     // console.log('Fetching:', url);
@@ -36,7 +43,7 @@ export function useItems({ setMessage } = {}) {
         }
       })
       .finally(() => setLoading(false));
-  }, [debouncedSearch, filterType, setMessage]);
+  }, [debouncedSearch, filterType, statusFilter, setMessage]);
 
   return {
     items,
@@ -48,5 +55,7 @@ export function useItems({ setMessage } = {}) {
     setFilterType,
     viewMode,
     setViewMode,
+    statusFilter,
+    setStatusFilter,
   };
 }
