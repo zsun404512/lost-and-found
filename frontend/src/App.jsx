@@ -164,6 +164,10 @@ function Home() {
     setPreviewImage(existingImage);
     setSelectedFile(null);
     setMessage(null);
+
+    if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   }
 
   function handleCancelEdit() {

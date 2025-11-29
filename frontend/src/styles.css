@@ -484,6 +484,7 @@ textarea {
 .file-input {
   flex-grow: 1;
   font-size: 14px;
+  font-family: inherit;
 }
 /* Style the file input to look consistent */
 input[type="file"]::file-selector-button {
@@ -619,10 +620,10 @@ input[type="file"]::file-selector-button:hover {
   border: 1px solid var(--border);
   background: var(--card);
   font-size: 14px;
+  font-family: inherit;
   cursor: pointer;
   transition: background-color 0.15s ease, border-color 0.15s ease;
 }
-
 .conversation-list-item.is-active {
   border-color: var(--accent);
   background: #eff6ff;
