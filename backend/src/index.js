@@ -10,9 +10,11 @@ import { createRequire } from 'module';
 // --- Our new imports ---
 import authRoutes from './routes/authRoutes.js';
 import Item from './models/itemModel.js';
+import Image from './models/imageModel.js';
 import { protect } from './middleware/authMiddleware.js';
 import uploadRoutes from './routes/uploadRoutes.js';
 import messagesRoutes from './routes/messagesRoutes.js';
+import imageRoutes from './routes/imageRoutes.js';
 
 const require = createRequire(import.meta.url);
 dotenv.config();
@@ -31,9 +33,7 @@ app.use(cors());
 app.use('/api/auth', authRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/messages', protect, messagesRoutes);
-
-// make upload folder public
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+app.use('/api/images', imageRoutes);
 
 // Try to connect to MongoDB...
 const mongoUri = process.env.MONGODB_URI;
@@ -182,6 +182,19 @@ app.delete('/api/items/:id', protect, async (req, res) => {
     // compare item's 'user' field with the user from the token
     if (item.user.toString() !== req.user.userId) {
       return res.status(401).json({ message: 'User not authorized' });
+    }
+
+    const imageId = item.image;
+    if (
+      imageId &&
+      typeof imageId === 'string' &&
+      !imageId.startsWith('/uploads')
+    ) {
+      try {
+        await Image.deleteOne({ _id: imageId });
+      } catch (err) {
+        console.error('Image delete error:', err);
+      }
     }
 
     // delete the item
