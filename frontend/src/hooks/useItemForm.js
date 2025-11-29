@@ -107,6 +107,26 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      const allowedMimeTypes = ['image/jpeg', 'image/png'];
+      const allowedExtensions = ['jpg', 'jpeg', 'png'];
+      const name = file.name || '';
+      const ext = name.includes('.') ? name.split('.').pop().toLowerCase() : '';
+
+      const isMimeOk = allowedMimeTypes.includes(file.type);
+      const isExtOk = allowedExtensions.includes(ext);
+
+      // Reject if neither the MIME type nor the extension looks like a
+      // supported image. This makes sure PDFs of any size never get uploaded.
+      if (!isMimeOk && !isExtOk) {
+        setSelectedFile(null);
+        setPreviewImage(null);
+        setMessage({ type: 'error', text: 'Images only! (jpg, jpeg, png)' });
+        if (e.target && typeof e.target.value !== 'undefined') {
+          e.target.value = null;
+        }
+        return;
+      }
+
       if (file.size > 5 * 1024 * 1024) {
         setMessage({ type: 'error', text: 'File is too large (Max 5MB)' });
         return;
@@ -158,7 +178,7 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
         if (!res.ok) {
           throw new Error(data.message || 'Image upload failed');
         }
-        imageUrl = data.image;
+        imageUrl = data.imageId;
         setMessage({
           type: 'success',
           text: editingItem

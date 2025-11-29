@@ -3,11 +3,14 @@ export function getItemImageUrl(item) {
     return null;
   }
 
-  if (process.env.NODE_ENV === 'development') {
-    return `http://localhost:4000${item.image}`;
+  // If the image field still looks like an old filesystem path, treat it as
+  // "no image" to avoid depending on backend/uploads.
+  if (typeof item.image === 'string' && item.image.startsWith('/uploads')) {
+    return null;
   }
 
-  return item.image;
+  // Otherwise assume it is a Mongo image ID and construct the API URL.
+  return `/api/images/${item.image}`;
 }
 
 export function formatDateTime(isoString) {
