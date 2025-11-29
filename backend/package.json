@@ -6,7 +6,9 @@
   "scripts": {
     "predev": "kill-port 4000 || exit 0",
     "start": "node src/index.js",
-    "dev": "nodemon src/index.js"
+    "dev": "nodemon src/index.js",
+    "cucumber": "cucumber-js --config test/cucumber.cjs",
+    "test:bdd": "npm run cucumber"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
@@ -20,6 +22,7 @@
     "sharp": "^0.33.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.10"
+    "nodemon": "^3.1.10",
+    "@cucumber/cucumber": "^11.0.0"
   }
 }
