@@ -76,11 +76,16 @@ app.get('/api', (req, res) => {
 app.get('/api/items', async (req, res) => {
   console.log('[GET] /api/items');
   // search logic
-  const { search, type } = req.query;
+  const { search, type, status } = req.query;
 
-  const filter = {
-    status: 'open'
-  };
+  const filter = {};
+
+  // default to open only unless specified resolved
+  if (!status || status === 'open') {
+    filter.status = 'open';
+  } else if (status === 'resolved') {
+    filter.status = 'resolved';
+  }
 
   // add to filter if search query is provided
   if (search) {

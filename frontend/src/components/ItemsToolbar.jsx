@@ -5,6 +5,8 @@ export default function ItemsToolbar({
   onFilterChange,
   viewMode,
   onViewModeChange,
+  statusFilter,
+  onStatusFilterChange,
 }) {
   return (
     <>
@@ -25,11 +27,22 @@ export default function ItemsToolbar({
           className="type-filter"
           value={filterType}
           onChange={(e) => onFilterChange(e.target.value)}
-          style={{ marginBottom: '16px' }}
+          style={{ marginBottom: '16px', marginRight: '8px' }}
         >
           <option value="all">All Items</option>
           <option value="lost">Lost Items</option>
           <option value="found">Found Items</option>
+        </select>
+
+        <select
+          className="type-filter"
+          value={statusFilter}
+          onChange={(e) => onStatusFilterChange(e.target.value)}
+          style={{ marginBottom: '16px' }}
+        >
+          <option value="open">Open Only</option>
+          <option value="resolved">Resolved Only</option>
+          <option value="all">All Statuses</option>
         </select>
       </div>
 

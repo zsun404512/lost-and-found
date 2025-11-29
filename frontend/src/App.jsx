@@ -37,6 +37,8 @@ function Home() {
     setFilterType,
     viewMode,
     setViewMode,
+    statusFilter,
+    setStatusFilter,
   } = itemsState;
 
   const {
@@ -106,6 +108,8 @@ function Home() {
         onFilterChange={setFilterType}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
+        statusFilter={statusFilter}
+        onStatusFilterChange={setStatusFilter}
       />
 
       {loading ? (
