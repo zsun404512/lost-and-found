@@ -16,6 +16,23 @@ body {
   background: var(--bg);
   color: #0f172a;
   line-height: 1.6;
+  position: relative;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: -80px;
+  background-image:
+    url("/decorations/bear.png"),
+    url("/decorations/magnifying-glass.png");
+  background-repeat: repeat, repeat;
+  background-size: 180px 180px, 180px 180px;
+  background-position: 0 0, 90px 90px;
+  opacity: 0.05;
+  pointer-events: none;
+  z-index: -1;
+  transform-origin: center;
 }
 
 /* --- New Header/Nav Styles --- */
