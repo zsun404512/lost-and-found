@@ -1,4 +1,4 @@
-import { getItemImageUrl } from '../utils/items';
+import { getItemImageUrl, formatDateTime } from '../utils/items';
 
 export default function ItemsList({
   items,
@@ -85,6 +85,15 @@ export default function ItemsList({
             <div className="desc">{item.description}</div>
             <div className="meta">
               {item.location} · {item.date}
+            </div>
+
+            <div className="item-timestamps">
+              <div className="item-timestamp-primary">
+                Last updated: {formatDateTime(item.updatedAt || item.createdAt)}
+              </div>
+              <div className="item-timestamp-secondary">
+                Created: {formatDateTime(item.createdAt)}
+              </div>
             </div>
           </li>
         );
