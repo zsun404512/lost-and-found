@@ -12,6 +12,7 @@ import authRoutes from './routes/authRoutes.js';
 import Item from './models/itemModel.js';
 import { protect } from './middleware/authMiddleware.js';
 import uploadRoutes from './routes/uploadRoutes.js';
+import messagesRoutes from './routes/messagesRoutes.js';
 
 const require = createRequire(import.meta.url);
 dotenv.config();
@@ -29,6 +30,7 @@ app.use(cors());
 // --- API Routes ---
 app.use('/api/auth', authRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/messages', protect, messagesRoutes);
 
 // make upload folder public
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
@@ -48,7 +50,7 @@ if (mongoUri) {
     })
     .catch((err) => {
       useDb = false;
-      console.error('Failed to connect to MongoDB:', err.message);
+      console.error('Failed to connect to MongoDB:', err);
     });
 } else {
   console.log('No MONGODB_URI set — running with in-memory fallback.');
