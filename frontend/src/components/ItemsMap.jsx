@@ -60,11 +60,24 @@ export default function ItemsMap({ items, onBoundsChange }) {
     const validItems = items
       .filter((it) => it.status === 'open')
       .map((it) => {
-        const lat = typeof it.lat === 'number' ? it.lat : Number(it.lat);
-        const lng = typeof it.lng === 'number' ? it.lng : Number(it.lng);
+        const rawLat = it.lat;
+        const rawLng = it.lng;
+
+        const hasLat = rawLat !== undefined && rawLat !== null && rawLat !== '';
+        const hasLng = rawLng !== undefined && rawLng !== null && rawLng !== '';
+        if (!hasLat || !hasLng) {
+          return null;
+        }
+
+        const lat = typeof rawLat === 'number' ? rawLat : Number(rawLat);
+        const lng = typeof rawLng === 'number' ? rawLng : Number(rawLng);
+        if (Number.isNaN(lat) || Number.isNaN(lng)) {
+          return null;
+        }
+
         return { ...it, lat, lng };
       })
-      .filter((it) => !Number.isNaN(it.lat) && !Number.isNaN(it.lng));
+      .filter(Boolean);
 
     if (validItems.length === 0) {
       map.setView(UCLA_CENTER, UCLA_ZOOM);
