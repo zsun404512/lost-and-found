@@ -282,7 +282,10 @@ function Home() {
    * Handle deleting a post.
    */
   async function handleDelete(itemId) {
-    console.warn('A custom confirmation modal should be used here.');
+    const confirmedDelete = window.confirm('Are you sure you want to delete this item?');
+    if (!confirmedDelete) {
+      return;
+    }
     const token = localStorage.getItem('token');
     if (!token) {
       setMessage({ type: 'error', text: 'You must be logged in.' });
@@ -498,7 +501,11 @@ function Home() {
       <h2 className="subtitle">Recent Items</h2>
 
       <div className="filter-container">
+        <label style={{ display: 'none' }} htmlFor="search-input">
+          Search
+        </label>        
         <input
+          id="search-input"
           type="search"
           className="search-bar"
           placeholder="Search by title or description..."
@@ -551,6 +558,7 @@ function Home() {
             <p className="empty">
               {searchQuery || filterType !== 'all'
                 ? 'No items match your search.'
+                : user ? 'No items yet. Be the first to post!' 
                 : 'No items yet.'}
             </p>
           ) : viewMode === 'map' ? (
