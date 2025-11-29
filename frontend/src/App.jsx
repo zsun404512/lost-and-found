@@ -534,6 +534,7 @@ function Home() {
               : 'view-toggle-button'
           }
           onClick={() => setViewMode('list')}
+          aria-pressed={viewMode === 'list'}
         >
           List view
         </button>
@@ -545,6 +546,7 @@ function Home() {
               : 'view-toggle-button'
           }
           onClick={() => setViewMode('map')}
+          aria-pressed={viewMode === 'map'}
         >
           Map view
         </button>
