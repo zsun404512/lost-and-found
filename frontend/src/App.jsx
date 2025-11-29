@@ -60,9 +60,17 @@ function Home() {
 
   const visibleItems = mapFilterActive && mapBounds
     ? items.filter((it) => {
-        const lat = typeof it.lat === 'number' ? it.lat : Number(it.lat);
-        const lng = typeof it.lng === 'number' ? it.lng : Number(it.lng);
+        const rawLat = it.lat;
+        const rawLng = it.lng;
+
+        const hasLat = rawLat !== undefined && rawLat !== null && rawLat !== '';
+        const hasLng = rawLng !== undefined && rawLng !== null && rawLng !== '';
+        if (!hasLat || !hasLng) return false;
+
+        const lat = typeof rawLat === 'number' ? rawLat : Number(rawLat);
+        const lng = typeof rawLng === 'number' ? rawLng : Number(rawLng);
         if (Number.isNaN(lat) || Number.isNaN(lng)) return false;
+
         return (
           lat >= mapBounds.south &&
           lat <= mapBounds.north &&
