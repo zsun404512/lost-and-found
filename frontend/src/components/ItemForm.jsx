@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import ImageCropper from './ImageCropper.jsx';
 
 export default function ItemForm({
   form,
@@ -11,6 +12,7 @@ export default function ItemForm({
   onSubmit,
   onCancelEdit,
   onFileChange,
+  onImageCropped,
 }) {
   const [showDetails, setShowDetails] = useState(false);
 
@@ -155,6 +157,14 @@ export default function ItemForm({
             )}
           </div>
         </div>
+
+        {previewImage && (
+          <ImageCropper
+            imageSrc={previewImage}
+            onCancel={() => onImageCropped(null, null)}
+            onApply={onImageCropped}
+          />
+        )}
 
         {/* Submit button */}
         <div className="form-row" style={{ marginTop: '8px' }}>

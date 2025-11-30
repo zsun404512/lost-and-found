@@ -37,6 +37,7 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
   const [editingItem, setEditingItem] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [editedFile, setEditedFile] = useState(null);
   const [previewImage, setPreviewImage] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -100,6 +101,7 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
     setEditingItem(null);
     setForm(EMPTY_FORM);
     setSelectedFile(null);
+    setEditedFile(null);
     setPreviewImage(null);
     setMessage(null);
   }
@@ -119,6 +121,7 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
       // supported image. This makes sure PDFs of any size never get uploaded.
       if (!isMimeOk && !isExtOk) {
         setSelectedFile(null);
+        setEditedFile(null);
         setPreviewImage(null);
         setMessage({ type: 'error', text: 'Images only! (jpg, jpeg, png)' });
         if (e.target && typeof e.target.value !== 'undefined') {
@@ -132,11 +135,18 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
         return;
       }
       setSelectedFile(file);
+      setEditedFile(null);
       setPreviewImage(URL.createObjectURL(file));
     } else {
       setSelectedFile(null);
+      setEditedFile(null);
       setPreviewImage(null);
     }
+  };
+
+  const handleImageCropped = (file, previewUrl) => {
+    setEditedFile(file);
+    setPreviewImage(previewUrl);
   };
 
   async function handleSubmit(e) {
@@ -158,12 +168,14 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
 
     let imageUrl = '';
 
-    if (selectedFile) {
+    const fileToUpload = editedFile || selectedFile;
+
+    if (fileToUpload) {
       setUploading(true);
       setMessage({ type: 'success', text: 'Uploading image...' });
 
       const formData = new FormData();
-      formData.append('image', selectedFile);
+      formData.append('image', fileToUpload);
 
       try {
         const res = await fetch('/api/upload', {
@@ -195,7 +207,7 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
       }
     }
 
-    if (!selectedFile && editingItem && editingItem.image && !imageUrl) {
+    if (!fileToUpload && editingItem && editingItem.image && !imageUrl) {
       imageUrl = editingItem.image;
     }
 
@@ -269,6 +281,7 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
 
       setForm(EMPTY_FORM);
       setSelectedFile(null);
+      setEditedFile(null);
       setPreviewImage(null);
       if (e.target.elements.image) {
         e.target.elements.image.value = null;
@@ -388,6 +401,7 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
     handleStartEdit,
     handleCancelEdit,
     handleFileChange,
+    handleImageCropped,
     handleSubmit,
     handleDelete,
     handleToggleResolve,
