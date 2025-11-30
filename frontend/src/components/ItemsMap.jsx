@@ -13,7 +13,7 @@ L.Icon.Default.mergeOptions({
 const UCLA_CENTER = [34.0703, -118.4449];
 const UCLA_ZOOM = 16;
 
-export default function ItemsMap({ items, onBoundsChange }) {
+export default function ItemsMap({ items, onBoundsChange, user }) {
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const markersLayerRef = useRef(null);
@@ -91,10 +91,33 @@ export default function ItemsMap({ items, onBoundsChange }) {
 
       const marker = L.marker(position).addTo(markersLayerRef.current);
 
+      const posterLabel = item.userEmail
+        ? user && user.userId === item.user
+          ? 'you'
+          : item.userEmail
+        : null;
+
+      const lines = [];
+
+      if (item.description) {
+        lines.push(`<div><strong>Location:</strong> ${item.description}</div>`);
+      }
+
+      if (item.date) {
+        lines.push(`<div><strong>When:</strong> ${item.date}</div>`);
+      }
+
+      if (posterLabel) {
+        lines.push(`<div><strong>Posted by:</strong> ${posterLabel}</div>`);
+      }
+
+      const bodyHtml = lines.join('');
+
       marker.bindPopup(
-        `<div><strong>${item.title || ''}</strong><br/>${
-          item.description || ''
-        }<br/>${item.date || ''}</div>`,
+        `<div>
+          <div><strong>${item.title || ''}</strong></div>
+          ${bodyHtml}
+        </div>`,
       );
       bounds.extend(position);
     });
