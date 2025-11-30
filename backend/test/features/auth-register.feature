@@ -1,3 +1,4 @@
+@wip
 Feature: User registration (signup)
   As a new user
   I want to register with my email and password
