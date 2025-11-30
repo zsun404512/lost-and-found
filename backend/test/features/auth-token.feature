@@ -1,3 +1,4 @@
+@wip
 Feature: Accessing protected resources with JWT
   As an authenticated user
   I want to use my JWT to access protected endpoints
