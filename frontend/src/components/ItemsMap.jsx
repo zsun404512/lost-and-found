@@ -94,7 +94,9 @@ export default function ItemsMap({ items, onBoundsChange }) {
       marker.bindPopup(
         `<div><strong>${item.title || ''}</strong><br/>${
           item.description || ''
-        }<br/>${item.date || ''}</div>`,
+        }<br/>${item.date || ''}${
+          item.userEmail ? `<br/>Posted by ${item.userEmail}` : ''
+        }</div>`,
       );
       bounds.extend(position);
     });
