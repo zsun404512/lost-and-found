@@ -7,6 +7,10 @@ export default function ItemsToolbar({
   onViewModeChange,
   statusFilter,
   onStatusFilterChange,
+  searchHistory,
+  onSearchSubmit,
+  onHistorySelect,
+  onClearHistory
 }) {
   return (
     <>
@@ -21,8 +25,58 @@ export default function ItemsToolbar({
           placeholder="Search by title or description..."
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              onSearchSubmit(searchQuery);
+            }
+          }}
           style={{ marginBottom: '16px' }}
         />
+        {searchHistory && searchHistory.length > 0 && (
+          <div style={{ marginBottom: '8px' }}>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '4px',
+              }}
+            >
+              <span style={{ fontSize: '0.9em', color: '#666' }}>Recent searches</span>
+              <button
+                type="button"
+                className="btn btn-link clear-history-btn"
+                onClick={onClearHistory}
+                style={{ padding: '4px 8px', fontSize: '0.9em' }}
+              >
+                Clear
+              </button>
+            </div>
+
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '4px',
+              }}
+            >
+              {searchHistory.map((term) => (
+                <button
+                  key={term}
+                  type="button"
+                  onClick={() => onHistorySelect(term)}
+                  className="btn btn-secondary"
+                  style={{
+                    padding: '2px 6px',
+                    fontSize: '0.85em',
+                  }}
+                >
+                  {term}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         <select
           className="type-filter"
           value={filterType}
