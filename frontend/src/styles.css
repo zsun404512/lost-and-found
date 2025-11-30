@@ -750,3 +750,26 @@ input[type="file"]::file-selector-button:hover {
   border: 1px solid var(--border);
   margin-top: 8px;
 }
+
+/* The Lost and Found logo */
+.item-type-badge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  vertical-align: middle;
+  position: relative;
+  top: -1px;
+}
+
+.item-type-lost {
+  background-color: #fee2e2; /* light red */
+  color: #b91c1c;            /* dark red */
+}
+
+.item-type-found {
+  background-color: #dcfce7; /* light green */
+  color: #166534;            /* dark green */
+}
