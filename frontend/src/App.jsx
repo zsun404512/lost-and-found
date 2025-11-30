@@ -20,6 +20,46 @@ function Home() {
   const [message, setMessage] = useState(null);
   const [mapBounds, setMapBounds] = useState(null);
   const [mapFilterActive, setMapFilterActive] = useState(false);
+  const [searchHistory, setSearchHistory] = useState(() => {
+    const saved = localStorage.getItem('searchHistory');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const updateHistory = (newTerm) => {
+    let trimmed = newTerm.trim();
+    if (!trimmed) {
+      return;
+    }
+    setSearchHistory((prevHistory) => {
+      const filteredHistory = prevHistory.filter((term) => term !== trimmed);
+      const updatedHistory = [trimmed, ...filteredHistory];
+      localStorage.setItem('searchHistory', JSON.stringify(updatedHistory));
+      return updatedHistory;
+    });
+  };
+
+  const handleSearchSubmit = (term) => {
+    let trimmed = term.trim();
+    if (!trimmed) {
+      return;
+    }
+    setSearchQuery(trimmed);
+    updateHistory(trimmed);
+  };
+
+  const handleHistorySelect = (term) => {
+    let trimmed = term.trim();
+    if (!trimmed) {
+      return;
+    }
+    setSearchQuery(trimmed);
+    updateHistory(trimmed);
+  };
+  
+  const handleClearHistory = () => {
+    setSearchHistory([]);
+    localStorage.removeItem('searchHistory');
+  };
 
   const itemsState = useItems({ setMessage });
   const {
@@ -126,6 +166,10 @@ function Home() {
         onViewModeChange={setViewMode}
         statusFilter={statusFilter}
         onStatusFilterChange={setStatusFilter}
+        searchHistory={searchHistory}
+        onClearHistory={handleClearHistory}
+        onSearchSubmit={handleSearchSubmit}
+        onHistorySelect={handleHistorySelect}
       />
 
       {viewMode === 'map' && mapBounds && (
