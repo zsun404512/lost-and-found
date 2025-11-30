@@ -43,8 +43,16 @@ export default function ItemsList({
 
             <div className="item-header">
               <h3>
-                {item.title}{' '}
-                <small style={{ color: '#374151' }}>({item.type})</small>
+                {item.title}
+                <span
+                  className={
+                    item.type === 'found'
+                      ? 'item-type-badge item-type-found'
+                      : 'item-type-badge item-type-lost'
+                  }
+                >
+                  {item.type === 'found' ? 'Found item' : 'Lost item'}
+                </span>
               </h3>
 
               <div className="item-owner-actions">
