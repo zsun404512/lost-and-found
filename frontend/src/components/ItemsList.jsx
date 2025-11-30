@@ -15,6 +15,22 @@ export default function ItemsList({
         const isResolved = item.status === 'resolved';
         const imageUrl = getItemImageUrl(item);
 
+        const metaPieces = [];
+
+        if (item.location) {
+          metaPieces.push({ text: item.location });
+        }
+
+        if (item.date) {
+          const verb = item.type === 'found' ? 'Found on' : 'Lost on';
+          metaPieces.push({ text: `${verb} ${item.date}` });
+        }
+
+        if (item.userEmail) {
+          const posterLabel = user && user.userId === item.user ? 'you' : item.userEmail;
+          metaPieces.push({ text: `Posted by ${posterLabel}`, className: 'item-owner-email' });
+        }
+
         return (
           <li key={item._id || item.id} className="item">
             {imageUrl && (
@@ -84,13 +100,15 @@ export default function ItemsList({
 
             <div className="desc">{item.description}</div>
             <div className="meta">
-              {item.location} · {item.date}
-              {item.userEmail && (
-                <span className="item-owner-email">
-                  {' '}
-                  · Posted by {user && user.userId === item.user ? 'you' : item.userEmail}
+              {metaPieces.map((piece, index) => (
+                <span
+                  key={index}
+                  className={piece.className}
+                >
+                  {index > 0 && ' · '}
+                  {piece.text}
                 </span>
-              )}
+              ))}
             </div>
 
             <div className="item-timestamps">
