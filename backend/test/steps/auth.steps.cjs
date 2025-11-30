@@ -123,21 +123,6 @@ Given('I provide no login password', function () {
   delete this.body.password;
 });
 
-When(
-  'I send a POST request to {string} with this email and password',
-  async function (path) {
-    const res = await this.request
-      .post(path)
-      .set(this.headers)
-      .send({ email: this.body.email, password: this.body.password });
-    this.response = res;
-
-    if (path === '/api/auth/login' && res.status === 200 && res.body.token) {
-      this.context.lastToken = res.body.token;
-    }
-  }
-);
-
 Then('the token should be a valid JWT signed with the server secret', function () {
   return 'pending';
 });
