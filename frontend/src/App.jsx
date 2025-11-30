@@ -153,6 +153,7 @@ function Home() {
             <>
               <ItemsMap
                 items={items}
+                user={user}
                 onBoundsChange={(bounds) => {
                   setMapBounds(bounds);
                 }}
