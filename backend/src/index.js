@@ -104,8 +104,29 @@ app.get('/api/items', async (req, res) => {
 
   if (useDb && mongoose.connection.readyState === 1) {
     try {
-      const docs = await Item.find(filter).sort({ createdAt: -1 }).lean();
-      return res.json(docs);
+      const docs = await Item.find(filter)
+        .sort({ createdAt: -1 })
+        .populate('user', 'email')
+        .lean();
+
+      const itemsWithEmail = docs.map((doc) => {
+        const userField = doc.user;
+        let userId = userField;
+        let userEmail = null;
+
+        if (userField && typeof userField === 'object') {
+          userId = userField._id || userField.id || userField;
+          userEmail = userField.email || null;
+        }
+
+        return {
+          ...doc,
+          user: userId ? String(userId) : undefined,
+          userEmail,
+        };
+      });
+
+      return res.json(itemsWithEmail);
     } catch (e) {
       return res.status(500).json({ error: e.message });
     }

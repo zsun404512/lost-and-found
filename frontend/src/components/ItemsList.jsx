@@ -85,6 +85,9 @@ export default function ItemsList({
             <div className="desc">{item.description}</div>
             <div className="meta">
               {item.location} · {item.date}
+              {item.userEmail && (
+                <span className="item-owner-email"> · Posted by {item.userEmail}</span>
+              )}
             </div>
 
             <div className="item-timestamps">
