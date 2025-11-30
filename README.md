@@ -159,3 +159,46 @@ MONGODB_URI=mongodb+srv://user:password@cluster0.abcde.mongodb.net/lostandfound?
 3. Put that value into `backend/.env` (create the file from `backend/.env.example`) and start the backend.
 
 Behavior: if `MONGODB_URI` is set and the backend can connect, the API will use MongoDB for GET/POST `/api/items`. If no `MONGODB_URI` is provided or the DB connection fails, the backend will fall back to an in-memory store (so the app still works for local dev).
+
+## Testing
+
+### Frontend tests
+
+From the `frontend` workspace, there is only one type of test, which are performed by `vitest`.
+
+```bash
+cd frontend
+npx vitest run tests/components/*.test.jsx # you can run it all or indivually
+npx vitest run tests/components/individual_file.test.jsx
+```
+
+### Backend tests
+
+From the `backend` workspace: there are two types of tests, which are performed by `vitest` and `cucumber`.
+
+1. When using cucumber, use the following command:
+
+```bash
+cd backend
+npm run cucumber
+```
+
+2. When using node + vitest, use the following command:
+
+```bash
+cd backend
+node --test test/*.test.jsx
+node --test test/individual_file.test.jsx # you can run it all or indivually
+```
+
+
+### Backend Cucumber tests
+
+From the `backend` workspace:
+
+```bash
+cd backend
+npm run cucumber
+```
+
+This runs the Cucumber feature tests using the configuration in `test/cucumber.cjs`.
