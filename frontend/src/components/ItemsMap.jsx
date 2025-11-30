@@ -97,12 +97,27 @@ export default function ItemsMap({ items, onBoundsChange, user }) {
           : item.userEmail
         : null;
 
+      const lines = [];
+
+      if (item.description) {
+        lines.push(`<div><strong>Location:</strong> ${item.description}</div>`);
+      }
+
+      if (item.date) {
+        lines.push(`<div><strong>When:</strong> ${item.date}</div>`);
+      }
+
+      if (posterLabel) {
+        lines.push(`<div><strong>Posted by:</strong> ${posterLabel}</div>`);
+      }
+
+      const bodyHtml = lines.join('');
+
       marker.bindPopup(
-        `<div><strong>${item.title || ''}</strong><br/>${
-          item.description || ''
-        }<br/>${item.date || ''}${
-          posterLabel ? `<br/>Posted by ${posterLabel}` : ''
-        }</div>`,
+        `<div>
+          <div><strong>${item.title || ''}</strong></div>
+          ${bodyHtml}
+        </div>`,
       );
       bounds.extend(position);
     });

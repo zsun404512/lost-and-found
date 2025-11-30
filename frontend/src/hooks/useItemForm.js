@@ -242,14 +242,22 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
       setFilterType('all');
 
       setItems((prevItems) => {
+        const enriched = {
+          ...created,
+          // make sure the user field is a string id that matches the logged-in user
+          user: created.user || (user && user.userId) || created.user,
+          // ensure userEmail is present so UI can show "Posted by you" immediately
+          userEmail: created.userEmail || (user && user.email) || created.userEmail,
+        };
+
         if (editingItem && editingItem._id) {
           return prevItems.map((item) =>
             (item._id || item.id) === (created._id || created.id)
-              ? created
+              ? enriched
               : item,
           );
         }
-        return [created, ...prevItems];
+        return [enriched, ...prevItems];
       });
 
       if (editingItem && editingItem._id) {
