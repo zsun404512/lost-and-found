@@ -86,7 +86,10 @@ export default function ItemsList({
             <div className="meta">
               {item.location} · {item.date}
               {item.userEmail && (
-                <span className="item-owner-email"> · Posted by {item.userEmail}</span>
+                <span className="item-owner-email">
+                  {' '}
+                  · Posted by {user && user.userId === item.user ? 'you' : item.userEmail}
+                </span>
               )}
             </div>
 
