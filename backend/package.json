@@ -8,7 +8,8 @@
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
     "cucumber": "cucumber-js --config test/cucumber.cjs",
-    "test:bdd": "npm run cucumber"
+    "test:bdd": "npm run cucumber",
+    "test:node": "node --test \"test/**/*.test.mjs\""
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
