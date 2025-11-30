@@ -36,6 +36,15 @@ describe('Search history', () => {
     localStorage.clear();
   });
 
+  it('does not show history when there are no searches yet', async () => {
+    renderLoggedInApp();
+
+    // Wait for the search input to ensure the toolbar is rendered
+    await screen.findByPlaceholderText('Search by title or description...');
+
+    expect(screen.queryByText('Recent searches')).toBeNull();
+  });
+
   it('adds a term to history and persists it to localStorage on Enter submit', async () => {
     renderLoggedInApp();
 
