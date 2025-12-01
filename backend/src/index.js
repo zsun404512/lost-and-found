@@ -75,7 +75,7 @@ app.get('/api', (req, res) => {
 // GET /api/items 
 app.get('/api/items', async (req, res) => {
   console.log('[GET] /api/items');
-  // search logic
+  // search + pagination logic
   const { search, type, status } = req.query;
 
   const filter = {};
@@ -93,19 +93,27 @@ app.get('/api/items', async (req, res) => {
     // 'i' makes it case-insensitive
     filter.$or = [
       { title: { $regex: search, $options: 'i' } },
-      { description: { $regex: search, $options: 'i' } }
+      { description: { $regex: search, $options: 'i' } },
     ];
   }
 
-  // add to filter if title query is provided
+  // add to filter if type query is provided
   if (type && type !== 'all') {
     filter.type = type;
   }
 
+  const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+  const limitRaw = parseInt(req.query.limit, 10) || 20;
+  const limit = Math.min(Math.max(limitRaw, 1), 100);
+  const skip = (page - 1) * limit;
+
   if (useDb && mongoose.connection.readyState === 1) {
     try {
+      const totalItems = await Item.countDocuments(filter);
       const docs = await Item.find(filter)
         .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
         .populate('user', 'email')
         .lean();
 
@@ -126,13 +134,59 @@ app.get('/api/items', async (req, res) => {
         };
       });
 
-      return res.json(itemsWithEmail);
+      const totalPages = totalItems > 0 ? Math.ceil(totalItems / limit) : 1;
+      const hasMore = page < totalPages;
+
+      return res.json({
+        items: itemsWithEmail,
+        page,
+        limit,
+        totalItems,
+        totalPages,
+        hasMore,
+      });
     } catch (e) {
       return res.status(500).json({ error: e.message });
     }
   }
 
-  return res.json(inMemoryItems);
+  // In-memory fallback with basic filtering + pagination
+  let filteredItems = inMemoryItems || [];
+
+  if (!status || status === 'open') {
+    filteredItems = filteredItems.filter((item) => item.status === 'open');
+  } else if (status === 'resolved') {
+    filteredItems = filteredItems.filter((item) => item.status === 'resolved');
+  }
+
+  if (type && type !== 'all') {
+    filteredItems = filteredItems.filter((item) => item.type === type);
+  }
+
+  if (search) {
+    const q = String(search).toLowerCase();
+    filteredItems = filteredItems.filter((item) => {
+      const title = (item.title || '').toLowerCase();
+      const description = (item.description || '').toLowerCase();
+      return title.includes(q) || description.includes(q);
+    });
+  }
+
+  const totalItems = filteredItems.length;
+  const totalPages = totalItems > 0 ? Math.ceil(totalItems / limit) : 1;
+  const start = skip;
+  const end = skip + limit;
+  const pageItems = filteredItems.slice(start, end);
+  const hasMore = page < totalPages;
+
+  return res.json({
+    items: pageItems,
+    page,
+    limit,
+    totalItems,
+    totalPages,
+    hasMore,
+  });
 });
 
 // POST /api/items (Protected)
