@@ -267,10 +267,12 @@ export default function MessagesPage() {
             <>
               <div
                 style={{
-                  marginBottom: '8px',
+                  marginBottom: '12px',
+                  paddingBottom: '8px',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '4px',
+                  borderBottom: '1px solid #e5e7eb',
                 }}
               >
                 <span
@@ -345,11 +347,13 @@ export default function MessagesPage() {
               {activeConversation && (
                 <div
                   style={{
-                    marginBottom: '8px',
+                    marginBottom: '12px',
+                    paddingBottom: '8px',
                     display: 'flex',
                     flexWrap: 'wrap',
                     gap: '6px',
                     alignItems: 'center',
+                    borderBottom: '1px solid #e5e7eb',
                   }}
                 >
                   <span
