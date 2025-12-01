@@ -74,7 +74,11 @@ function Home() {
     setViewMode,
     statusFilter,
     setStatusFilter,
+    hasMore,
+    loadMore,
   } = itemsState;
+
+  const isInitialLoading = loading && items.length === 0;
 
   const {
     form,
@@ -219,70 +223,83 @@ function Home() {
         </div>
       )}
 
-      {loading ? (
+      {isInitialLoading && (
         <p className="loading">Loading...</p>
-      ) : (
-        <div>
-          {viewMode === 'map' ? (
-            <>
-              <ItemsMap
+      )}
+
+      <div>
+        {viewMode === 'map' ? (
+          <>
+            <ItemsMap
+              items={items}
+              user={user}
+              onBoundsChange={(bounds) => {
+                setMapBounds(bounds);
+              }}
+            />
+
+            {items.length === 0 ? (
+              <p className="empty">
+                {searchQuery || filterType !== 'all'
+                  ? 'No items match your search.'
+                  : user
+                  ? 'No items yet. Be the first to post!'
+                  : 'No items yet.'}
+              </p>
+            ) : mapFilterActive && visibleItems.length === 0 ? (
+              <p className="empty">
+                No items in this map area. Try zooming, panning, or turning off the map filter.
+              </p>
+            ) : (
+              <ItemsList
+                items={mapFilterActive ? visibleItems : items}
+                user={user}
+                onEdit={(item) => {
+                  setShowForm(true);
+                  handleStartEdit(item);
+                }}
+                onToggleResolve={handleToggleResolve}
+                onDelete={handleDelete}
+                onMessageOwner={handleMessageOwner}
+              />
+            )}
+          </>
+        ) : (
+          <>
+            {items.length === 0 ? (
+              <p className="empty">
+                {searchQuery || filterType !== 'all'
+                  ? 'No items match your search.'
+                  : user
+                  ? 'No items yet. Be the first to post!'
+                  : 'No items yet.'}
+              </p>
+            ) : (
+              <ItemsList
                 items={items}
                 user={user}
-                onBoundsChange={(bounds) => {
-                  setMapBounds(bounds);
-                }}
+                onEdit={handleStartEdit}
+                onToggleResolve={handleToggleResolve}
+                onDelete={handleDelete}
+                onMessageOwner={handleMessageOwner}
               />
+            )}
+          </>
+        )}
 
-              {items.length === 0 ? (
-                <p className="empty">
-                  {searchQuery || filterType !== 'all'
-                    ? 'No items match your search.'
-                    : user
-                    ? 'No items yet. Be the first to post!'
-                    : 'No items yet.'}
-                </p>
-              ) : mapFilterActive && visibleItems.length === 0 ? (
-                <p className="empty">
-                  No items in this map area. Try zooming, panning, or turning off the map filter.
-                </p>
-              ) : (
-                <ItemsList
-                  items={mapFilterActive ? visibleItems : items}
-                  user={user}
-                  onEdit={(item) => {
-                    setShowForm(true);
-                    handleStartEdit(item);
-                  }}
-                  onToggleResolve={handleToggleResolve}
-                  onDelete={handleDelete}
-                  onMessageOwner={handleMessageOwner}
-                />
-              )}
-            </>
-          ) : (
-            <>
-              {items.length === 0 ? (
-                <p className="empty">
-                  {searchQuery || filterType !== 'all'
-                    ? 'No items match your search.'
-                    : user
-                    ? 'No items yet. Be the first to post!'
-                    : 'No items yet.'}
-                </p>
-              ) : (
-                <ItemsList
-                  items={items}
-                  user={user}
-                  onEdit={handleStartEdit}
-                  onToggleResolve={handleToggleResolve}
-                  onDelete={handleDelete}
-                  onMessageOwner={handleMessageOwner}
-                />
-              )}
-            </>
-          )}
-        </div>
-      )}
+        {hasMore && (
+          <div style={{ marginTop: '12px', textAlign: 'center' }}>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={loadMore}
+              disabled={loading}
+            >
+              {loading ? 'Loading more posts...' : 'Load more posts'}
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
