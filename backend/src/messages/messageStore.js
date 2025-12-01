@@ -17,6 +17,8 @@ function createMemoryStore() {
     return {
       _id: String(conv._id),
       participants: (conv.participants || []).map((p) => String(p)),
+      tag: conv.tag || 'none',
+      itemId: conv.itemId ? String(conv.itemId) : null,
       createdAt: conv.createdAt,
       updatedAt: conv.updatedAt,
     };
@@ -38,7 +40,8 @@ function createMemoryStore() {
   }
 
   return {
-    async getOrCreateConversation(userIdA, userIdB) {
+    async getOrCreateConversation(userIdA, userIdB, options = {}) {
+      const { itemId } = options || {};
       const a = String(userIdA);
       const b = String(userIdB);
       const target = [a, b].sort().join(':');
@@ -53,10 +56,15 @@ function createMemoryStore() {
         existing = {
           _id: makeId(),
           participants: [a, b],
+          itemId: itemId ? String(itemId) : null,
+          tag: 'none',
           createdAt: now,
           updatedAt: now,
         };
         conversations.push(existing);
+      } else if (itemId && !existing.itemId) {
+        existing.itemId = String(itemId);
+        existing.updatedAt = new Date();
       }
 
       return normalizeConversation(existing);
@@ -73,6 +81,15 @@ function createMemoryStore() {
     async getConversationById(conversationId) {
       const id = String(conversationId);
       const conv = conversations.find((c) => String(c._id) === id);
+      return normalizeConversation(conv);
+    },
+
+    async setConversationTag(conversationId, tag) {
+      const id = String(conversationId);
+      const conv = conversations.find((c) => String(c._id) === id);
+      if (!conv) return null;
+      conv.tag = tag;
+      conv.updatedAt = new Date();
       return normalizeConversation(conv);
     },
 
@@ -122,6 +139,8 @@ function createMongoStore() {
     return {
       _id: String(conv._id),
       participants: (conv.participants || []).map((p) => String(p)),
+      tag: conv.tag || 'none',
+      itemId: conv.itemId ? String(conv.itemId) : null,
       createdAt: conv.createdAt,
       updatedAt: conv.updatedAt,
     };
@@ -143,7 +162,8 @@ function createMongoStore() {
   }
 
   return {
-    async getOrCreateConversation(userIdA, userIdB) {
+    async getOrCreateConversation(userIdA, userIdB, options = {}) {
+      const { itemId, tag } = options || {};
       const a = String(userIdA);
       const b = String(userIdB);
 
@@ -152,8 +172,15 @@ function createMongoStore() {
       }).lean();
 
       if (!conv) {
-        const created = await Conversation.create({ participants: [a, b] });
+        const created = await Conversation.create({
+          participants: [a, b],
+          itemId: itemId || null,
+          tag: 'none',
+        });
         conv = created.toObject();
+      } else if (itemId && !conv.itemId) {
+        await Conversation.updateOne({ _id: conv._id }, { itemId });
+        conv.itemId = itemId;
       }
 
       return normalizeConversation(conv);
@@ -170,6 +197,15 @@ function createMongoStore() {
     async getConversationById(conversationId) {
       const conv = await Conversation.findById(conversationId).lean();
       return normalizeConversation(conv);
+    },
+
+    async setConversationTag(conversationId, tag) {
+      const updated = await Conversation.findByIdAndUpdate(
+        conversationId,
+        { tag },
+        { new: true, lean: true },
+      );
+      return normalizeConversation(updated);
     },
 
     async addMessage(conversationId, senderId, body) {

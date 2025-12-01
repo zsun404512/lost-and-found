@@ -10,7 +10,7 @@ const messageStore = createMessageStore({ backend: storeBackend });
 router.post('/conversations', async (req, res) => {
   try {
     const currentUserId = req.user && req.user.userId;
-    const { participantId } = req.body || {};
+    const { participantId, itemId } = req.body || {};
 
     if (!participantId) {
       return res.status(400).json({ message: 'participantId is required' });
@@ -18,12 +18,46 @@ router.post('/conversations', async (req, res) => {
 
     const conversation = await messageStore.getOrCreateConversation(
       currentUserId,
-      participantId
+      participantId,
+      { itemId },
     );
 
     return res.status(201).json(conversation);
   } catch (error) {
     console.error('Create conversation error:', error);
+    return res.status(500).json({ message: 'Server Error' });
+  }
+});
+
+router.post('/conversations/:conversationId/tag', async (req, res) => {
+  try {
+    const currentUserId = req.user && req.user.userId;
+    const { conversationId } = req.params;
+    const { tag } = req.body || {};
+
+    const allowedTags = ['none', 'has-my-item', 'i-have-their-item'];
+    if (!allowedTags.includes(tag)) {
+      return res.status(400).json({ message: 'Invalid tag' });
+    }
+
+    const conversation = await messageStore.getConversationById(conversationId);
+
+    if (!conversation) {
+      return res.status(404).json({ message: 'Conversation not found' });
+    }
+
+    const isParticipant = conversation.participants.some(
+      (id) => String(id) === String(currentUserId),
+    );
+
+    if (!isParticipant) {
+      return res.status(403).json({ message: 'Not authorized for this conversation' });
+    }
+
+    const updated = await messageStore.setConversationTag(conversationId, tag);
+    return res.status(200).json(updated);
+  } catch (error) {
+    console.error('Update conversation tag error:', error);
     return res.status(500).json({ message: 'Server Error' });
   }
 });

@@ -372,7 +372,10 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
   const handleMessageOwner = (item) => {
     if (!user) return;
     navigate('/messages', {
-      state: { participantId: item.user },
+      state: {
+        participantId: item.user,
+        itemId: item._id || item.id,
+      },
     });
   };
 

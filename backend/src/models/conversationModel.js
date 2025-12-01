@@ -8,6 +8,16 @@ const conversationSchema = new mongoose.Schema({
       required: true,
     },
   ],
+  itemId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Item',
+    default: null,
+  },
+  tag: {
+    type: String,
+    enum: ['none', 'has-my-item', 'i-have-their-item'],
+    default: 'none',
+  },
 }, { timestamps: true });
 
 const Conversation = mongoose.model('Conversation', conversationSchema);
