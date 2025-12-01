@@ -126,20 +126,6 @@ Then(
   }
 );
 
-Then(
-  'the response JSON {string} should indicate invalid user data or validation error',
-  function (field) {
-    const actual = jsonField(field, this.response.body);
-    expect(actual, `field ${field} should be a string`).to.be.a('string');
-
-    const lower = actual.toLowerCase();
-    expect(
-      lower.includes('invalid') || lower.includes('validation'),
-      `message "${actual}" should mention invalid data or validation`
-    ).to.be.true;
-  }
-);
-
 Then('the response JSON should contain a non-empty {string}', function (field) {
   const actual = jsonField(field, this.response.body);
   expect(actual).to.exist;
