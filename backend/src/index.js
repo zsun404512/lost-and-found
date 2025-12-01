@@ -10,8 +10,11 @@ import { createRequire } from 'module';
 // --- Our new imports ---
 import authRoutes from './routes/authRoutes.js';
 import Item from './models/itemModel.js';
+import Image from './models/imageModel.js';
 import { protect } from './middleware/authMiddleware.js';
 import uploadRoutes from './routes/uploadRoutes.js';
+import messagesRoutes from './routes/messagesRoutes.js';
+import imageRoutes from './routes/imageRoutes.js';
 
 const require = createRequire(import.meta.url);
 dotenv.config();
@@ -29,9 +32,8 @@ app.use(cors());
 // --- API Routes ---
 app.use('/api/auth', authRoutes);
 app.use('/api/upload', uploadRoutes);
-
-// make upload folder public
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+app.use('/api/messages', protect, messagesRoutes);
+app.use('/api/images', imageRoutes);
 
 // Try to connect to MongoDB...
 const mongoUri = process.env.MONGODB_URI;
@@ -48,7 +50,7 @@ if (mongoUri) {
     })
     .catch((err) => {
       useDb = false;
-      console.error('Failed to connect to MongoDB:', err.message);
+      console.error('Failed to connect to MongoDB:', err);
     });
 } else {
   console.log('No MONGODB_URI set — running with in-memory fallback.');
@@ -74,11 +76,16 @@ app.get('/api', (req, res) => {
 app.get('/api/items', async (req, res) => {
   console.log('[GET] /api/items');
   // search logic
-  const { search, type } = req.query;
+  const { search, type, status } = req.query;
 
-  const filter = {
-    status: 'open'
-  };
+  const filter = {};
+
+  // default to open only unless specified resolved
+  if (!status || status === 'open') {
+    filter.status = 'open';
+  } else if (status === 'resolved') {
+    filter.status = 'resolved';
+  }
 
   // add to filter if search query is provided
   if (search) {
@@ -97,8 +104,29 @@ app.get('/api/items', async (req, res) => {
 
   if (useDb && mongoose.connection.readyState === 1) {
     try {
-      const docs = await Item.find(filter).sort({ createdAt: -1 }).lean();
-      return res.json(docs);
+      const docs = await Item.find(filter)
+        .sort({ createdAt: -1 })
+        .populate('user', 'email')
+        .lean();
+
+      const itemsWithEmail = docs.map((doc) => {
+        const userField = doc.user;
+        let userId = userField;
+        let userEmail = null;
+
+        if (userField && typeof userField === 'object') {
+          userId = userField._id || userField.id || userField;
+          userEmail = userField.email || null;
+        }
+
+        return {
+          ...doc,
+          user: userId ? String(userId) : undefined,
+          userEmail,
+        };
+      });
+
+      return res.json(itemsWithEmail);
     } catch (e) {
       return res.status(500).json({ error: e.message });
     }
@@ -109,7 +137,7 @@ app.get('/api/items', async (req, res) => {
 
 // POST /api/items (Protected)
 app.post('/api/items', protect, async (req, res) => {
-  const { title, type, description, location, date, image } = req.body;
+  const { title, type, description, location, date, image, lat, lng } = req.body;
   console.log('[POST] /api/items - payload:', req.body);
   if (!title) return res.status(400).json({ error: 'Missing item title' });
 
@@ -122,6 +150,8 @@ app.post('/api/items', protect, async (req, res) => {
         location,
         date,
         image,
+        lat,
+        lng,
         user: req.user.userId 
       });
       
@@ -180,6 +210,19 @@ app.delete('/api/items/:id', protect, async (req, res) => {
       return res.status(401).json({ message: 'User not authorized' });
     }
 
+    const imageId = item.image;
+    if (
+      imageId &&
+      typeof imageId === 'string' &&
+      !imageId.startsWith('/uploads')
+    ) {
+      try {
+        await Image.deleteOne({ _id: imageId });
+      } catch (err) {
+        console.error('Image delete error:', err);
+      }
+    }
+
     // delete the item
     await Item.deleteOne({ _id: req.params.id });
 
@@ -202,7 +245,7 @@ app.put('/api/items/:id', protect, async (req, res) => {
     return res.status(500).json({ message: 'Database not connected' });
   }
 
-  const { title, type, description, location, date, image } = req.body;
+  const { title, type, description, location, date, image, lat, lng } = req.body;
 
   try {
     // find item in database
@@ -225,6 +268,8 @@ app.put('/api/items/:id', protect, async (req, res) => {
     if (location !== undefined) item.location = location;
     if (date !== undefined) item.date = date;
     if (image !== undefined) item.image = image;
+    if (lat !== undefined) item.lat = lat;
+    if (lng !== undefined) item.lng = lng;
 
     const updatedItem = await item.save();
 

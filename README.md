@@ -107,7 +107,47 @@ npx eslint . --fix
 ## Using MongoDB (optional)
 If you want the backend to persist items to MongoDB, set up a MongoDB instance (MongoDB Atlas or local) and provide the connection string in `backend/.env` as `MONGODB_URI`.
 
-Example steps with MongoDB Atlas:
+### Local MongoDB (Community Edition)
+If you prefer to run MongoDB locally on macOS using Homebrew:
+
+1. Install MongoDB Community Edition (one-time):
+
+    ```bash
+    brew tap mongodb/brew
+    brew install mongodb-community
+    ```
+
+2. Start MongoDB now and on login:
+
+    ```bash
+    brew services start mongodb-community
+    ```
+
+3. Verify the server is running:
+
+    ```bash
+    mongod --version
+    mongosh "mongodb://localhost:27017/lostandfound"
+    ```
+
+    You should see a `lostandfound>` prompt in `mongosh` without connection errors.
+
+4. Set the connection string in `backend/.env`:
+
+    ```bash
+    MONGODB_URI=mongodb://localhost:27017/lostandfound
+    ```
+
+    Then (from the repo root) start the app:
+
+    ```bash
+    npm run dev
+    ```
+
+    If the backend can connect, it will log `Connected to MongoDB` and use the `lostandfound` database for `/api/items`.
+
+### Cloud MongoDB (MongoDB Atlas)
+You can also use a cloud-hosted MongoDB instance via MongoDB Atlas. Here's the basic setup:
 
 1. Create a free cluster at https://www.mongodb.com/cloud/atlas and create a database user.
 2. Get the connection string and replace placeholders, e.g.:
@@ -119,3 +159,46 @@ MONGODB_URI=mongodb+srv://user:password@cluster0.abcde.mongodb.net/lostandfound?
 3. Put that value into `backend/.env` (create the file from `backend/.env.example`) and start the backend.
 
 Behavior: if `MONGODB_URI` is set and the backend can connect, the API will use MongoDB for GET/POST `/api/items`. If no `MONGODB_URI` is provided or the DB connection fails, the backend will fall back to an in-memory store (so the app still works for local dev).
+
+## Testing
+
+### Frontend tests
+
+From the `frontend` workspace, there is only one type of test, which are performed by `vitest`.
+
+```bash
+cd frontend
+npx vitest run tests/components/*.test.jsx # you can run it all or indivually
+npx vitest run tests/components/individual_file.test.jsx
+```
+
+### Backend tests
+
+From the `backend` workspace: there are two types of tests, which are performed by `vitest` and `cucumber`.
+
+1. When using cucumber, use the following command:
+
+```bash
+cd backend
+npm run cucumber
+```
+
+2. When using node + vitest, use the following command:
+
+```bash
+cd backend
+node --test test/*.test.jsx
+node --test test/individual_file.test.jsx # you can run it all or indivually
+```
+
+
+### Backend Cucumber tests
+
+From the `backend` workspace:
+
+```bash
+cd backend
+npm run cucumber
+```
+
+This runs the Cucumber feature tests using the configuration in `test/cucumber.cjs`.

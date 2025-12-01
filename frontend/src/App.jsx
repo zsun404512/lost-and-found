@@ -1,427 +1,146 @@
-import React, { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import { useState } from 'react';
+import { BrowserRouter, Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
+
 import LoginPage from './pages/LoginPage';
 import SignUpPage from './pages/SignUpPage';
+import MessagesPage from './pages/MessagesPage.jsx';
+import MessagesNavButton from './components/MessagesNavButton.jsx';
+import ItemForm from './components/ItemForm.jsx';
+import ItemsToolbar from './components/ItemsToolbar.jsx';
+import ItemsList from './components/ItemsList.jsx';
+import ItemsMap from './components/ItemsMap.jsx';
 import { useAuth } from './context/AuthContext';
-import { useDebounce } from './hooks/useDebounce';
+import { useItems } from './hooks/useItems';
+import { useItemForm } from './hooks/useItemForm';
 
-/**
- * Home component — main application UI for listing and submitting items.
- */
 function Home() {
-  const { user } = useAuth();
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
-
-  // Initial form state
-  const initialFormState = {
-    title: '',
-    type: 'lost',
-    description: '',
-    location: '',
-    date: '',
-    image: null,
-  };
-  const [form, setForm] = useState(initialFormState);
-  const [editingItem, setEditingItem] = useState(null);
-
-  // State for file upload
-  const [uploading, setUploading] = useState(false);
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [previewImage, setPreviewImage] = useState(null);
-
-  const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterType, setFilterType] = useState('all');
-  const debouncedSearch = useDebounce(searchQuery, 500);
+  const [mapBounds, setMapBounds] = useState(null);
+  const [mapFilterActive, setMapFilterActive] = useState(false);
+  const [searchHistory, setSearchHistory] = useState(() => {
+    const saved = localStorage.getItem('searchHistory');
+    return saved ? JSON.parse(saved) : [];
+  });
 
-  /**
-   * Load items from the backend.
-   */
-  useEffect(() => {
-    setLoading(true);
-
-    const params = new URLSearchParams();
-    if (debouncedSearch) {
-      params.append('search', debouncedSearch);
+  const updateHistory = (newTerm) => {
+    let trimmed = newTerm.trim();
+    if (!trimmed) {
+      return;
     }
-    if (filterType !== 'all') {
-      params.append('type', filterType);
-    }
-
-    const queryString = params.toString();
-    const url = `/api/items${queryString ? `?${queryString}` : ''}`;
-    // console.log('Fetching:', url);
-
-    fetch(url)
-      .then((r) => r.json())
-      .then((data) => setItems(data))
-      .catch((err) => {
-        if (err.name === 'AbortError') return;
-        setItems([]);
-        setMessage({ type: 'error', text: 'Failed to load items' });
-      })
-      .finally(() => setLoading(false));
-  }, [debouncedSearch, filterType]);
-
-  // Special handler for file input
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        setMessage({ type: 'error', text: 'File is too large (Max 5MB)' });
-        return;
-      }
-      setSelectedFile(file);
-      setPreviewImage(URL.createObjectURL(file));
-    } else {
-      setSelectedFile(null);
-      setPreviewImage(null);
-    }
+    setSearchHistory((prevHistory) => {
+      const filteredHistory = prevHistory.filter((term) => term !== trimmed);
+      const updatedHistory = [trimmed, ...filteredHistory];
+      localStorage.setItem('searchHistory', JSON.stringify(updatedHistory));
+      return updatedHistory;
+    });
   };
 
-  /**
-   * Handle form input changes.
-   */
-  function onChange(e) {
-    const { name, value } = e.target;
-    setForm((p) => ({ ...p, [name]: value }));
-    setMessage(null);
-  }
-
-  function handleStartEdit(item) {
-    setEditingItem(item);
-    setForm({
-      title: item.title || '',
-      type: item.type || 'lost',
-      description: item.description || '',
-      location: item.location || '',
-      date: item.date || '',
-      image: null,
-    });
-
-    const existingImage = item.image
-      ? process.env.NODE_ENV === 'development'
-        ? `http://localhost:4000${item.image}`
-        : item.image
-      : null;
-
-    setPreviewImage(existingImage);
-    setSelectedFile(null);
-    setMessage(null);
-  }
-
-  function handleCancelEdit() {
-    setEditingItem(null);
-    setForm(initialFormState);
-    setSelectedFile(null);
-    setPreviewImage(null);
-    setMessage(null);
-  }
-
-  /**
-   * Handle form submission.
-   */
-  async function onSubmit(e) {
-    e.preventDefault();
-    setMessage(null);
-    if (!form.title) {
-      setMessage({ type: 'error', text: 'Title is required' });
+  const handleSearchSubmit = (term) => {
+    let trimmed = term.trim();
+    if (!trimmed) {
       return;
     }
-    setSubmitting(true);
-    const token = localStorage.getItem('token');
-    if (!token) {
-      setMessage({ type: 'error', text: 'You must be logged in to post.' });
-      setSubmitting(false);
+    setSearchQuery(trimmed);
+    updateHistory(trimmed);
+  };
+
+  const handleHistorySelect = (term) => {
+    let trimmed = term.trim();
+    if (!trimmed) {
       return;
     }
+    setSearchQuery(trimmed);
+    updateHistory(trimmed);
+  };
+  
+  const handleClearHistory = () => {
+    setSearchHistory([]);
+    localStorage.removeItem('searchHistory');
+  };
 
-    let imageUrl = '';
+  const itemsState = useItems({ setMessage });
+  const {
+    items,
+    loading,
+    searchQuery,
+    setSearchQuery,
+    filterType,
+    setFilterType,
+    viewMode,
+    setViewMode,
+    statusFilter,
+    setStatusFilter,
+  } = itemsState;
 
-    // Step 1: Upload image if selected
-    if (selectedFile) {
-      setUploading(true);
-      setMessage({ type: 'success', text: 'Uploading image...' });
+  const {
+    form,
+    editingItem,
+    uploading,
+    previewImage,
+    submitting,
+    handleChange,
+    handleStartEdit,
+    handleCancelEdit,
+    handleFileChange,
+    handleSubmit,
+    handleDelete,
+    handleToggleResolve,
+    handleMessageOwner,
+  } = useItemForm({
+    itemsState,
+    message,
+    setMessage,
+    user,
+    logout,
+    navigate,
+  });
 
-      const formData = new FormData();
-      formData.append('image', selectedFile);
+  const visibleItems = mapFilterActive && mapBounds
+    ? items.filter((it) => {
+        const rawLat = it.lat;
+        const rawLng = it.lng;
 
-      try {
-        const res = await fetch('/api/upload', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          body: formData,
-        });
+        const hasLat = rawLat !== undefined && rawLat !== null && rawLat !== '';
+        const hasLng = rawLng !== undefined && rawLng !== null && rawLng !== '';
+        if (!hasLat || !hasLng) return false;
 
-        const data = await res.json();
-        if (!res.ok) {
-          throw new Error(data.message || 'Image upload failed');
-        }
-        imageUrl = data.image;
-        setMessage({
-          type: 'success',
-          text: editingItem
-            ? 'Image uploaded! Saving changes...'
-            : 'Image uploaded! Submitting post...',
-        });
-      } catch (err) {
-        setMessage({ type: 'error', text: err.message });
-        setSubmitting(false);
-        setUploading(false);
-        return;
-      } finally {
-        setUploading(false);
-      }
-    }
+        const lat = typeof rawLat === 'number' ? rawLat : Number(rawLat);
+        const lng = typeof rawLng === 'number' ? rawLng : Number(rawLng);
+        if (Number.isNaN(lat) || Number.isNaN(lng)) return false;
 
-    // Step 2: Submit or update the post
-    try {
-      const postData = { ...form, image: imageUrl };
-
-      let url = '/api/items';
-      let method = 'POST';
-      if (editingItem && editingItem._id) {
-        url = `/api/items/${editingItem._id}`;
-        method = 'PUT';
-      }
-
-      const res = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(postData),
-      });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ message: 'Unknown error' }));
-        throw new Error(
-          err.message ||
-            (editingItem ? 'Failed to update item' : 'Failed to submit post'),
+        return (
+          lat >= mapBounds.south &&
+          lat <= mapBounds.north &&
+          lng >= mapBounds.west &&
+          lng <= mapBounds.east
         );
-      }
+      })
+    : items;
 
-      const created = await res.json();
-      setSearchQuery('');
-      setFilterType('all');
-
-      if (editingItem && editingItem._id) {
-        setItems((prevItems) =>
-          prevItems.map((item) =>
-            (item._id || item.id) === (created._id || created.id)
-              ? created
-              : item,
-          ),
-        );
-        setEditingItem(null);
-        setMessage({ type: 'success', text: 'Item updated.' });
-      } else {
-        setItems((p) => [created, ...p]);
-        setMessage({ type: 'success', text: 'Item submitted.' });
-      }
-
-      setForm(initialFormState);
-      setSelectedFile(null);
-      setPreviewImage(null);
-      if (e.target.elements.image) {
-        e.target.elements.image.value = null;
-      }
-    } catch (err) {
-      setMessage({
-        type: 'error',
-        text: err.message || (editingItem ? 'Update failed' : 'Submission failed'),
-      });
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  /**
-   * Handle deleting a post.
-   */
-  async function handleDelete(itemId) {
-    console.warn('A custom confirmation modal should be used here.');
-    const token = localStorage.getItem('token');
-    if (!token) {
-      setMessage({ type: 'error', text: 'You must be logged in.' });
-      return;
-    }
-    try {
-      const res = await fetch(`/api/items/${itemId}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.message || 'Failed to delete');
-      }
-      setItems((prevItems) => prevItems.filter((item) => item._id !== itemId));
-      setMessage({ type: 'success', text: data.message });
-    } catch (err) {
-      setMessage({ type: 'error', text: err.message });
-    }
-  }
-
-  /**
-   * Handle toggling a post's 'resolved' status.
-   */
-  async function handleToggleResolve(itemId) {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      setMessage({ type: "error", text: "You must be logged in." });
-      return;
-    }
-
-    try {
-      const res = await fetch(`/api/items/${itemId}/toggle-resolve`, {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const updatedItem = await res.json();
-      if (!res.ok) {
-        throw new Error(updatedItem.message || "Failed to update status");
-      }
-
-      setItems((prevItems) =>
-        prevItems.map((item) =>
-          (item._id || item.id) === (updatedItem._id || updatedItem.id)
-            ? updatedItem
-            : item,
-        ),
-      );
-
-      const statusText =
-        updatedItem.status === 'resolved'
-          ? 'Item marked as resolved.'
-          : 'Item reopened.';
-      setMessage({ type: 'success', text: statusText });
-    } catch (err) {
-      setMessage({ type: "error", text: err.message });
-    }
-  }
-    // Format an ISO date-time string into something readable
-  function formatDateTime(isoString) {
-    if (!isoString) return '';
-    const d = new Date(isoString);
-    return d.toLocaleString(undefined, {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-    });
-  }
   return (
     <div className="app">
-      <h1 className="title">Lost & Found Tracker</h1>
+      <h1 className="title">UCLostAndfound</h1>
 
       {user ? (
         <>
           <p className="lead">
             Report a lost or found item using the form below.
           </p>
-          <form className="form" onSubmit={onSubmit}>
-            <div>
-              {editingItem && (
-                <div className="edit-banner">
-                  <span>
-                    Editing item:{' '}
-                    <strong>{editingItem.title || 'Untitled item'}</strong>
-                  </span>
-                  <button
-                    type="button"
-                    className="btn-edit-cancel"
-                    onClick={handleCancelEdit}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              )}
-
-              <input
-                name="title"
-                value={form.title}
-                onChange={onChange}
-                placeholder="Item title (required)"
-              />
-              <div className="form-row" style={{ marginTop: '8px' }}>
-                <select name="type" value={form.type} onChange={onChange}>
-                  <option value="lost">I lost it on...</option>
-                  <option value="found">I found it on...</option>
-                </select>
-                <input
-                  type="date"
-                  name="date"
-                  value={form.date}
-                  onChange={onChange}
-                />
-              </div>
-              <input
-                name="location"
-                value={form.location}
-                onChange={onChange}
-                placeholder="Location"
-              />
-              <div className="form-row" style={{ marginTop: '8px' }}>
-                <textarea
-                  name="description"
-                  value={form.description}
-                  onChange={onChange}
-                  placeholder="Description"
-                />
-              </div>
-
-              <div
-                className="form-row"
-                style={{ marginTop: '8px', alignItems: 'center' }}
-              >
-                <input
-                  type="file"
-                  name="image"
-                  accept="image/png, image/jpeg, image/jpg"
-                  onChange={handleFileChange}
-                  className="file-input"
-                />
-                {previewImage && (
-                  <img
-                    src={previewImage}
-                    alt="Preview"
-                    className="image-preview"
-                  />
-                )}
-              </div>
-
-              <div className="form-row" style={{ marginTop: '8px' }}>
-                <button className="btn" type="submit" disabled={submitting || uploading}>
-                  {uploading
-                    ? 'Uploading...'
-                    : submitting
-                    ? editingItem
-                      ? 'Saving...'
-                      : 'Submitting...'
-                    : editingItem
-                    ? 'Save Changes'
-                    : 'Submit Item'}
-                </button>
-              </div>
-              {message && (
-                <div className={message.type === 'error' ? 'error' : 'success'}>
-                  {message.text}
-                </div>
-              )}
-            </div>
-          </form>
+          <ItemForm
+            form={form}
+            editingItem={editingItem}
+            uploading={uploading}
+            previewImage={previewImage}
+            submitting={submitting}
+            message={message}
+            onChange={handleChange}
+            onSubmit={handleSubmit}
+            onCancelEdit={handleCancelEdit}
+            onFileChange={handleFileChange}
+          />
         </>
       ) : (
         <p className="lead">
@@ -438,120 +157,96 @@ function Home() {
 
       <h2 className="subtitle">Recent Items</h2>
 
-      <div className="filter-container">
-        <input
-          type="search"
-          className="search-bar"
-          placeholder="Search by title or description..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          style={{ marginBottom: '16px' }}
-        />
-        <select
-          className="type-filter"
-          value={filterType}
-          onChange={(e) => setFilterType(e.target.value)}
-          style={{ marginBottom: '16px' }}
-        >
-          <option value="all">All Items</option>
-          <option value="lost">Lost Items</option>
-          <option value="found">Found Items</option>
-        </select>
-      </div>
+      <ItemsToolbar
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        filterType={filterType}
+        onFilterChange={setFilterType}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        statusFilter={statusFilter}
+        onStatusFilterChange={setStatusFilter}
+        searchHistory={searchHistory}
+        onClearHistory={handleClearHistory}
+        onSearchSubmit={handleSearchSubmit}
+        onHistorySelect={handleHistorySelect}
+      />
+
+      {viewMode === 'map' && mapBounds && (
+        <div className="map-filter-indicator" style={{ marginBottom: '8px' }}>
+          <button
+            type="button"
+            className={mapFilterActive ? 'btn btn-secondary active' : 'btn btn-secondary'}
+            onClick={() => setMapFilterActive((prev) => !prev)}
+          >
+            {mapFilterActive ? 'Map filter: ON' : 'Map filter: OFF'}
+          </button>
+          {mapFilterActive && (
+            <span style={{ marginLeft: '8px' }}>
+              Showing items in current map area.
+            </span>
+          )}
+        </div>
+      )}
 
       {loading ? (
         <p className="loading">Loading...</p>
       ) : (
         <div>
-          {items.length === 0 ? (
-            <p className="empty">
-              {searchQuery || filterType !== 'all'
-                ? 'No items match your search.'
-                : 'No items yet.'}
-            </p>
+          {viewMode === 'map' ? (
+            <>
+              <ItemsMap
+                items={items}
+                user={user}
+                onBoundsChange={(bounds) => {
+                  setMapBounds(bounds);
+                }}
+              />
+
+              {items.length === 0 ? (
+                <p className="empty">
+                  {searchQuery || filterType !== 'all'
+                    ? 'No items match your search.'
+                    : user
+                    ? 'No items yet. Be the first to post!'
+                    : 'No items yet.'}
+                </p>
+              ) : mapFilterActive && visibleItems.length === 0 ? (
+                <p className="empty">
+                  No items in this map area. Try zooming, panning, or turning off the map filter.
+                </p>
+              ) : (
+                <ItemsList
+                  items={mapFilterActive ? visibleItems : items}
+                  user={user}
+                  onEdit={handleStartEdit}
+                  onToggleResolve={handleToggleResolve}
+                  onDelete={handleDelete}
+                  onMessageOwner={handleMessageOwner}
+                />
+              )}
+            </>
           ) : (
-            <ul className="items-list">
-              {items.map((it) => {
-                const isOwner = user && user.userId === it.user;
-                const isResolved = it.status === 'resolved';
-
-                return (
-                  <li key={it._id || it.id} className="item">
-                    {it.image && (
-                      <img
-                        src={
-                          process.env.NODE_ENV === 'development'
-                            ? `http://localhost:4000${it.image}`
-                            : it.image
-                        }
-                        alt={it.title}
-                        className="item-image"
-                      />
-                    )}
-
-                    <div className="item-header">
-                      <h3>
-                        {it.title}{' '}
-                        <small style={{ color: '#374151' }}>({it.type})</small>
-                      </h3>
-
-                      <div className="item-owner-actions">
-                        {isOwner && (
-                          <button
-                            type="button"
-                            className="btn-edit"
-                            onClick={() => handleStartEdit(it)}
-                          >
-                            Edit
-                          </button>
-                        )}
-
-                        <button
-                          className={
-                            `status-button ${
-                              isResolved ? 'status-resolved' : 'status-open'
-                            } ` +
-                            (isOwner ? 'status-clickable' : 'status-readonly')
-                          }
-                          onClick={
-                            isOwner
-                              ? () => handleToggleResolve(it._id || it.id)
-                              : undefined
-                          }
-                          disabled={!isOwner}
-                          type="button"
-                        >
-                          {isResolved ? 'Resolved' : 'Open'}
-                        </button>
-
-                        {isOwner && (
-                          <button
-                            className="btn-delete"
-                            type="button"
-                            onClick={() => handleDelete(it._id)}
-                          >
-                            Delete
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="desc">{it.description}</div>
-                    <div className="meta">
-                      {it.location} · {it.date}
-                    </div>
-                    <div className="item-timestamps">
-                      <div className="item-timestamp-primary">
-                        Last updated: {formatDateTime(it.updatedAt || it.createdAt)}
-                      </div>
-                      <div className="item-timestamp-secondary">
-                        Created: {formatDateTime(it.createdAt)}
-                      </div>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
+            <>
+              {items.length === 0 ? (
+                <p className="empty">
+                  {searchQuery || filterType !== 'all'
+                    ? 'No items match your search.'
+                    : user
+                    ? 'No items yet. Be the first to post!'
+                    : 'No items yet.'}
+                </p>
+              ) : (
+                <ItemsList
+                  items={items}
+                  user={user}
+                  onEdit={handleStartEdit}
+                  onToggleResolve={handleToggleResolve}
+                  onDelete={handleDelete}
+                  onMessageOwner={handleMessageOwner}
+                />
+              )}
+            </>
           )}
         </div>
       )}
@@ -559,15 +254,25 @@ function Home() {
   );
 }
 
-/**
- * App — top-level router component.
- * This is the part that was missing from your file.
- */
-export default function App() {
+// serves as router
+
+function AppShell() {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const onMessagesPage = location.pathname === '/messages';
+
+  const handleMessagesClick = () => {
+    navigate('/messages');
+  };
+
+  const handlePostsClick = () => {
+    navigate('/');
+  };
 
   return (
-    <BrowserRouter>
+    <>
       <header className="header">
         <nav className="nav-container">
           <Link to="/" className="nav-brand">
@@ -577,6 +282,21 @@ export default function App() {
             {user ? (
               <>
                 <span className="nav-user-email">{user.email}</span>
+                {onMessagesPage ? (
+                  <button
+                    type="button"
+                    className="nav-messages-button nav-posts-button"
+                    onClick={handlePostsClick}
+                  >
+                    Posts
+                  </button>
+                ) : (
+                  <MessagesNavButton
+                    isLoggedIn={true}
+                    unreadCount={0}
+                    onClick={handleMessagesClick}
+                  />
+                )}
                 <button onClick={logout} className="nav-logout-button">
                   Logout
                 </button>
@@ -595,7 +315,16 @@ export default function App() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignUpPage />} />
+        <Route path="/messages" element={<MessagesPage />} />
       </Routes>
+    </>
+  );
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AppShell />
     </BrowserRouter>
   );
 }
