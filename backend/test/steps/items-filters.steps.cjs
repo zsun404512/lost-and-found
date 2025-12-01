@@ -113,3 +113,16 @@ Then(
     }
   },
 );
+
+Then('every item in the response JSON should have status {string}', function (expectedStatus) {
+  const res = this.response;
+  expect(res, 'response not set').to.exist;
+
+  const items = res.body;
+  expect(items, 'response body should be an array').to.be.an('array');
+  expect(items.length).to.be.greaterThan(0);
+
+  for (const item of items) {
+    expect(item.status).to.equal(expectedStatus);
+  }
+});
