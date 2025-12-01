@@ -1,4 +1,3 @@
-@wip
 Feature: User login (authentication)
   As a registered user
   I want to log in with my email and password
@@ -43,9 +42,9 @@ Feature: User login (authentication)
 
     Examples:
       | email              | password       |
-      | ""                 | "StrongPass1!" |
-      | "user@example.com" | ""             |
-      | ""                 | ""             |
+      |                    | StrongPass1!   |
+      | user@example.com   |                |
+      |                    |                |
 
   Scenario: Login fails when user does not exist
     Given I provide a login email "unknown@example.com"
@@ -62,12 +61,12 @@ Feature: User login (authentication)
     And the response JSON "message" should be "Invalid credentials"
 
   Scenario: Login behavior when email case does not match stored lowercase form
-    Given the user in the database has email "user@example.com"
     And I provide a login email "User@Example.COM"
     And I provide a login password "StrongPass1!"
     When I send a POST request to "/api/auth/login" with this email and password
-    Then the behavior should be defined depending on whether the system normalizes login emails
-    And the response status and message should match the chosen behavior
+    Then the response status should be 200
+    And the response JSON "message" should be "Login successful"
+    And the response JSON "email" should be "user@example.com"
 
   Scenario: Login fails with server error when database is unavailable
     Given the database is unavailable

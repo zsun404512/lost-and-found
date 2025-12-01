@@ -1,6 +1,7 @@
 const { Given, When, Then, AfterAll } = require('@cucumber/cucumber');
 const { expect } = require('chai');
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 require('dotenv').config();
 
@@ -193,24 +194,41 @@ Given('I provide no login password', function () {
 });
 
 Then('the token should be a valid JWT signed with the server secret', function () {
-  return 'pending';
+  const token = this.response.body.token;
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  expect(decoded).to.be.an('object');
 });
 
 Then(
   'the token payload should contain the user\'s "_id" and "email" {string}',
-  function () {
-    return 'pending';
+  function (expectedEmail) {
+    const token = this.response.body.token;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    expect(decoded.userId).to.exist;
+    expect(decoded.email).to.equal(expectedEmail);
   }
 );
 
 Then('the token "exp" claim should be approximately 1 hour in the future', function () {
-  return 'pending';
+  const token = this.response.body.token;
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  const curTime = Math.floor(Date.now() / 1000);
+  const diff = decoded.exp - curTime;
+  expect(diff).to.be.within(3500, 3700);
 });
 
 // --- Auth token / headers ---
 
-Given('I have obtained a valid JWT for {string} via {string}', function () {
-  return 'pending';
+Given('I have obtained a valid JWT for {string} via {string}', async function (email, path) {
+  const password = 'TestPassword123!';
+
+  // Ensure the user exists; ignore errors if the user is already registered
+  await this.request.post('/api/auth/register').send({ email, password });
+
+  const res = await this.request.post(path).send({ email, password });
+  expect(res.status).to.equal(200);
+  expect(res.body.token, 'login response should contain a token').to.exist;
+  this.context.lastToken = res.body.token;
 });
 
 Given('I set the {string} header to {string}', function (name, value) {
