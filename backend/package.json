@@ -4,8 +4,11 @@
   "type": "module",
   "private": true,
   "scripts": {
+    "predev": "kill-port 4000 || exit 0",
     "start": "node src/index.js",
-    "dev": "nodemon src/index.js"
+    "dev": "nodemon src/index.js",
+    "cucumber": "cucumber-js --config test/cucumber.cjs",
+    "test:bdd": "npm run cucumber"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
@@ -15,9 +18,13 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^7.5.0",
     "morgan": "^1.10.0",
-    "multer": "^2.0.2"
+    "multer": "^2.0.2",
+    "sharp": "^0.33.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.10"
+    "nodemon": "^3.1.10",
+    "@cucumber/cucumber": "^11.0.0",
+    "supertest": "^7.1.1",
+    "chai": "^4.3.10"
   }
 }
