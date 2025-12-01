@@ -127,9 +127,7 @@ function Home() {
 
      {user ? (
   <>
-    <p className="lead">
-      Report a lost or found item on the campus lost &amp; found board.
-    </p>
+
 
     {!showForm ? (
       <div className="home-hero">
@@ -200,6 +198,8 @@ function Home() {
         onClearHistory={handleClearHistory}
         onSearchSubmit={handleSearchSubmit}
         onHistorySelect={handleHistorySelect}
+        mapFilterActive={mapFilterActive}
+  onMapFilterChange={setMapFilterActive}
       />
 
       {viewMode === 'map' && mapBounds && (
