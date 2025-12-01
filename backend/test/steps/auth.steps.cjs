@@ -1,5 +1,31 @@
-const { Given, When, Then } = require('@cucumber/cucumber');
+const { Given, When, Then, AfterAll } = require('@cucumber/cucumber');
 const { expect } = require('chai');
+const bcrypt = require('bcryptjs');
+const mongoose = require('mongoose');
+require('dotenv').config();
+
+// The backend uses ES modules, so we load the User model via dynamic import
+// from this CommonJS step file, and ensure we have a MongoDB connection in
+// the Cucumber test process.
+let userModelPromise;
+
+async function getUserModel() {
+  if (!userModelPromise) {
+    userModelPromise = (async () => {
+      if (mongoose.connection.readyState === 0) {
+        const uri =
+          process.env.MONGODB_URI ||
+          'mongodb://127.0.0.1:27017/lostandfound-test';
+        await mongoose.connect(uri);
+      }
+
+      const mod = await import('../../src/models/userModel.js');
+      return mod.default || mod;
+    })();
+  }
+
+  return userModelPromise;
+}
 
 // Shared helpers
 function jsonField(path, obj) {
@@ -14,16 +40,34 @@ Given('the system is running', async function () {
   expect(res.status).to.be.within(200, 299);
 });
 
-// We do not manipulate the real database here; these steps assume
-// appropriate seed data exists in the test database.
-Given('the user database is empty', function () {
-  return 'pending';
+// For the auth features we manipulate the test database so that each scenario
+// can start from a known state using the real User model.
+Given('the user database is empty', async function () {
+  const User = await getUserModel();
+  await User.deleteMany({});
 });
 
 Given(
   'the user database contains a user with email {string} and password {string}',
-  function (email, password) {
-    return 'pending';
+  async function (email, password) {
+    // Seed a real user via the register endpoint so hashing/validation match production.
+    await this.request.post('/api/auth/register').send({ email, password });
+
+    const User = await getUserModel();
+    const user = await User.findOne({ email });
+    this.context.user = user;
+  }
+);
+
+Given(
+  'a user already exists in the database with email {string} and password {string}',
+  async function (email, password) {
+    // Alias that uses the same seeding strategy as the step above.
+    await this.request.post('/api/auth/register').send({ email, password });
+
+    const User = await getUserModel();
+    const user = await User.findOne({ email });
+    this.context.user = user;
   }
 );
 
@@ -74,34 +118,73 @@ Then('the response JSON {string} should be {string}', function (field, value) {
   expect(actual).to.equal(value);
 });
 
+Then(
+  'the response status should be {int} or {int} depending on validation behavior',
+  function (status1, status2) {
+    expect(this.response, 'response not set').to.exist;
+    expect([status1, status2]).to.include(this.response.status);
+  }
+);
+
+Then(
+  'the response JSON {string} should indicate invalid user data or validation error',
+  function (field) {
+    const actual = jsonField(field, this.response.body);
+    expect(actual, `field ${field} should be a string`).to.be.a('string');
+
+    const lower = actual.toLowerCase();
+    expect(
+      lower.includes('invalid') || lower.includes('validation'),
+      `message "${actual}" should mention invalid data or validation`
+    ).to.be.true;
+  }
+);
+
 Then('the response JSON should contain a non-empty {string}', function (field) {
   const actual = jsonField(field, this.response.body);
   expect(actual).to.exist;
   expect(String(actual)).to.have.length.greaterThan(0);
 });
 
-Then('the user {string} should exist in the database', function () {
-  return 'pending';
+Then('the user {string} should exist in the database', async function (email) {
+  const User = await getUserModel();
+  const user = await User.findOne({ email });
+
+  expect(user).to.exist;
+  expect(user.email).to.equal(email);
+  expect(user._id).to.exist;
 });
 
 Then(
   'the stored password for {string} should not equal {string}',
-  function () {
-    return 'pending';
+  async function (email, plainPassword) {
+    const User = await getUserModel();
+    const user = await User.findOne({ email });
+
+    expect(user).to.exist;
+    expect(user.password).to.not.equal(plainPassword);
   }
 );
 
 Then(
   'the stored password for {string} should be a bcrypt hash',
-  function () {
-    return 'pending';
+  async function (email) {
+    const User = await getUserModel();
+    const user = await User.findOne({ email });
+
+    const matches = await bcrypt.compare(this.body.password, user.password);
+    expect(matches).to.be.true;
   }
 );
 
 Then(
   'the user in the database should have email {string}',
-  function () {
-    return 'pending';
+  async function (expectedEmail) {
+    const User = await getUserModel();
+    const user = await User.findOne({ email: expectedEmail });
+    expect(user).to.exist;
+    expect(user.email).to.equal(expectedEmail);
+    expect(user._id).to.exist;
   }
 );
 
@@ -159,4 +242,10 @@ When('I send a GET request to {string}', async function (path) {
 
 Then('the request should have {string} equal to {string}', function () {
   return 'pending';
+});
+
+AfterAll(async function () {
+  if (mongoose.connection.readyState !== 0) {
+    await mongoose.disconnect();
+  }
 });

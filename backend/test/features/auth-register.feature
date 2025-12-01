@@ -1,4 +1,3 @@
-@wip
 Feature: User registration (signup)
   As a new user
   I want to register with my email and password
@@ -42,10 +41,10 @@ Feature: User registration (signup)
     And the response JSON "message" should be "Please provide email and password"
 
     Examples:
-      | email              | password       |
-      | ""                 | "StrongPass1!" |
-      | "user@example.com" | ""             |
-      | ""                 | ""             |
+      | email            | password      |
+      |                  | StrongPass1!  |
+      | user@example.com |               |
+      |                  |               |
 
   Scenario: Signup fails when user already exists
     Given a user already exists in the database with email "existing@example.com" and password "StrongPass1!"
