@@ -58,8 +58,8 @@ Feature: User registration (signup)
     Given I provide an email "shortpass@example.com"
     And I provide a password "short7"
     When I send a POST request to "/api/auth/register" with this email and password
-    Then the response status should be 400 or 500 depending on validation behavior
-    And the response JSON "message" should indicate invalid user data or validation error
+    Then the response status should be 400
+    And the response JSON "message" should be "Password must be at least 8 characters long"
 
   Scenario: Signup succeeds with password exactly 8 characters
     Given I provide an email "minlength@example.com"
