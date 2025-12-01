@@ -231,6 +231,61 @@ body::before {
   border-color: #fecaca;
   color: #b91c1c;
 }
+.home-hero {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+  margin-bottom: 20px;
+}
+
+.home-hero-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.home-hero-text {
+  flex: 1;
+}
+
+.home-hero-title {
+  margin: 0 0 6px 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.home-hero-subtitle {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.home-hero-button {
+  margin-top: 4px;
+}
+
+.home-hero-illustration img {
+  max-width: 160px;
+  height: auto;
+  display: block;
+  filter: drop-shadow(0 4px 12px rgba(15, 23, 42, 0.15));
+}
+
+
+@media (max-width: 640px) {
+  .home-hero-content {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .home-hero-illustration img {
+    max-width: 120px;
+  }
+}
 
 .type-toggle-found.type-toggle-button--active {
   background: #dcfce7;
