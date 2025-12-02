@@ -79,7 +79,7 @@ Given(
 );
 
 Given('the database is unavailable', function () {
-  return 'pending';
+  this.headers['x-force-db-unavailable'] = 'true';
 });
 
 // --- Auth: register ---
