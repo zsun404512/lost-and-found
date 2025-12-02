@@ -120,13 +120,23 @@ export default function ItemsList({
             </div>
 
             <div className="item-timestamps">
-              <div className="item-timestamp-primary">
-                Last updated: {formatDateTime(item.updatedAt || item.createdAt)}
-              </div>
-              <div className="item-timestamp-secondary">
-                Created: {formatDateTime(item.createdAt)}
-              </div>
-            </div>
+  <details className="item-timestamps-details">
+    <summary className="item-timestamps-summary">
+      <span className="item-timestamps-label">
+        Last updated: {formatDateTime(item.updatedAt || item.createdAt)}
+      </span>
+      <span className="item-timestamps-arrow" aria-hidden="true">
+        ▸
+      </span>
+    </summary>
+
+    <div className="item-timestamps-body">
+      <div className="item-timestamp-row">
+        Created: {formatDateTime(item.createdAt)}
+      </div>
+    </div>
+  </details>
+</div>
           </li>
         );
       })}

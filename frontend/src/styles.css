@@ -133,22 +133,54 @@ body::before {
 }
 
 .item-timestamps {
-  margin-top: 4px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: #4b5563;
 }
 
-.item-timestamp-primary {
-  font-size: 12px;
-  font-weight: 500;
-  color: #0f172a;
+.item-timestamps-details {
+  border-top: 1px solid #e5e7eb;
+  padding-top: 0.35rem;
 }
 
-.item-timestamp-secondary {
-  font-size: 11px;
-  color: var(--muted);
+.item-timestamps-summary {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  gap: 0.25rem;
+  white-space: nowrap;        /* keep text + arrow on one line */
 }
+
+.item-timestamps-label {
+  display: inline-block;      /* explicit, helps with nowrap */
+}
+
+.item-timestamps-arrow {
+  display: inline-block;      /* make sure it sits inline with the text */
+  transition: transform 0.15s ease-out;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+
+.item-timestamps-details[open] .item-timestamps-arrow {
+  transform: rotate(90deg);
+}
+
+.item-timestamps-summary::-webkit-details-marker {
+  display: none;
+}
+
+
+
+.item-timestamps-body {
+  margin-top: 0.25rem;
+}
+
+.item-timestamp-row {
+  color: #6b7280;
+}
+
 
 .empty {
   color: var(--muted);
