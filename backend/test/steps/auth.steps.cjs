@@ -220,18 +220,29 @@ Then('the token "exp" claim should be approximately 1 hour in the future', funct
 // --- Auth token / headers ---
 
 Given('I have obtained a valid JWT for {string} via {string}', async function (email, path) {
-  const password = 'TestPassword123!';
-
-  // Ensure the user exists; ignore errors if the user is already registered
-  await this.request.post('/api/auth/register').send({ email, password });
+  // Background already ensures this user exists with password "StrongPass1!".
+  const password = 'StrongPass1!';
 
   const res = await this.request.post(path).send({ email, password });
   expect(res.status).to.equal(200);
-  expect(res.body.token, 'login response should contain a token').to.exist;
+  expect(res.body.token).to.exist;
   this.context.lastToken = res.body.token;
 });
 
+Given('I have a JWT for {string} that is already expired', function (email) {
+  const token = jwt.sign({ userId: 'dummy', email }, process.env.JWT_SECRET, {
+    expiresIn: -1,
+  });
+  this.context.expiredToken = token;
+});
+
 Given('I set the {string} header to {string}', function (name, value) {
+  if (value.includes('<valid_token>')) {
+    value = value.replace('<valid_token>', this.context.lastToken);
+  }
+  if (value.includes('<expired_token>')) {
+    value = value.replace('<expired_token>', this.context.expiredToken);
+  }
   this.headers[name] = value;
 });
 
@@ -244,8 +255,15 @@ When('I send a GET request to {string}', async function (path) {
   this.response = res;
 });
 
-Then('the request should have {string} equal to {string}', function () {
-  return 'pending';
+Then('the request should have {string} equal to {string}', function (fieldPath, expected) {
+  // For now we handle "req.user.email" by checking response.body.user.email
+  if (fieldPath === 'req.user.email') {
+    const email = this.response.body && this.response.body.user && this.response.body.user.email;
+    expect(email).to.equal(expected);
+  } else {
+    const actual = jsonField(fieldPath, this.response.body);
+    expect(actual).to.equal(expected);
+  }
 });
 
 AfterAll(async function () {
