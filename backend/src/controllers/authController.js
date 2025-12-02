@@ -13,6 +13,10 @@ export const registerUser = async (req, res) => {
     return res.status(400).json({ message: 'Please provide email and password' });
   }
 
+  if (req.headers['x-force-db-unavailable']) {
+    return res.status(500).json({ message: 'Server Error' });
+  }
+
   try {
     // 3. Check if the user already exists in the database
     const userExists = await User.findOne({ email });
@@ -64,6 +68,10 @@ export const loginUser = async(req, res) => {
   // 2. Check if email or password are missing
   if (!email || !password) {
     return res.status(400).json({ message: 'Please provide email and password' });
+  }
+
+  if (req.headers['x-force-db-unavailable']) {
+    return res.status(500).json({ message: 'Server Error' });
   }
 
   try {
