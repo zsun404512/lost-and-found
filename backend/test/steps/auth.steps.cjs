@@ -56,7 +56,10 @@ Given(
 
     const User = await getUserModel();
     const user = await User.findOne({ email });
+    this.context = this.context || {};
     this.context.user = user;
+    this.context.passwordByEmail = this.context.passwordByEmail || {};
+    this.context.passwordByEmail[email] = password;
   }
 );
 
@@ -68,7 +71,10 @@ Given(
 
     const User = await getUserModel();
     const user = await User.findOne({ email });
+    this.context = this.context || {};
     this.context.user = user;
+    this.context.passwordByEmail = this.context.passwordByEmail || {};
+    this.context.passwordByEmail[email] = password;
   }
 );
 
@@ -220,13 +226,18 @@ Then('the token "exp" claim should be approximately 1 hour in the future', funct
 // --- Auth token / headers ---
 
 Given('I have obtained a valid JWT for {string} via {string}', async function (email, path) {
-  // Background already ensures this user exists with password "StrongPass1!".
-  const password = 'StrongPass1!';
+  this.context = this.context || {};
+  this.context.passwordByEmail = this.context.passwordByEmail || {};
+
+  // Default to StrongPass1! if we don't have a specific password recorded for this email.
+  const password = this.context.passwordByEmail[email] || 'StrongPass1!';
 
   const res = await this.request.post(path).send({ email, password });
   expect(res.status).to.equal(200);
   expect(res.body.token).to.exist;
   this.context.lastToken = res.body.token;
+  this.context.tokensByEmail = this.context.tokensByEmail || {};
+  this.context.tokensByEmail[email] = res.body.token;
 });
 
 Given('I have a JWT for {string} that is already expired', function (email) {
@@ -237,12 +248,26 @@ Given('I have a JWT for {string} that is already expired', function (email) {
 });
 
 Given('I set the {string} header to {string}', function (name, value) {
+  const ctx = this.context || {};
+
   if (value.includes('<valid_token>')) {
-    value = value.replace('<valid_token>', this.context.lastToken);
+    value = value.replace('<valid_token>', ctx.lastToken);
   }
+
   if (value.includes('<expired_token>')) {
-    value = value.replace('<expired_token>', this.context.expiredToken);
+    value = value.replace('<expired_token>', ctx.expiredToken);
   }
+
+  // Support placeholders like <valid_token_for_user@example.com>
+  if (value.includes('<valid_token_for_')) {
+    const tokensByEmail = ctx.tokensByEmail || {};
+    value = value.replace(/<valid_token_for_([^>]+)>/g, (match, emailKey) => {
+      const tokenForEmail = tokensByEmail[emailKey];
+      expect(tokenForEmail, `No stored token for email ${emailKey}`).to.exist;
+      return tokenForEmail;
+    });
+  }
+
   this.headers[name] = value;
 });
 
