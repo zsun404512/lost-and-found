@@ -7,6 +7,7 @@
     "predev": "kill-port 4000 || exit 0",
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
+    "test": "node --experimental-vm-modules ../node_modules/jest/bin/jest.js --runInBand",
     "cucumber": "cucumber-js --config test/cucumber.cjs",
     "test:bdd": "npm run cucumber"
   },
@@ -25,6 +26,8 @@
     "nodemon": "^3.1.10",
     "@cucumber/cucumber": "^11.0.0",
     "supertest": "^7.1.1",
-    "chai": "^4.3.10"
+    "chai": "^4.3.10",
+    "@jest/globals": "^29.7.0",
+    "jest": "^29.7.0"
   }
 }
