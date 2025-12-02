@@ -1209,6 +1209,12 @@ input[type="file"]::file-selector-button:hover {
   color: var(--muted);
 }
 
+.image-cropper-warning {
+  margin-top: 4px;
+  font-size: 11px;
+  color: #92400e;
+}
+
 .image-cropper-footer {
   display: flex;
   justify-content: flex-end;
