@@ -72,6 +72,10 @@ app.get('/api', (req, res) => {
   res.json({ message: 'Hello from the Lost and Found API!' });
 });
 
+app.get('/api/protected-example', protect, (req, res) => {
+  res.json({ user: req.user });
+});
+
 // GET /api/items 
 app.get('/api/items', async (req, res) => {
   console.log('[GET] /api/items');
