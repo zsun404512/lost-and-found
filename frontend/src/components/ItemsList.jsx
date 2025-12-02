@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { getItemImageUrl, formatDateTime } from '../utils/items';
 
 export default function ItemsList({
@@ -8,6 +9,8 @@ export default function ItemsList({
   onDelete,
   onMessageOwner,
 }) {
+  const [actionsOpenForId, setActionsOpenForId] = useState(null);
+
   return (
     <ul className="items-list">
       {items.map((item) => {
@@ -26,10 +29,20 @@ export default function ItemsList({
           metaPieces.push({ text: `${verb} ${item.date}` });
         }
 
+        let posterLabel = null;
         if (item.userEmail) {
-          const posterLabel = user && user.userId === item.user ? 'you' : item.userEmail;
-          metaPieces.push({ text: `Posted by ${posterLabel}`, className: 'item-owner-email' });
+          posterLabel = user && user.userId === item.user ? 'you' : item.userEmail;
+          metaPieces.push({
+            text: `Posted by ${posterLabel}`,
+            className: 'item-owner-email',
+          });
         }
+
+        const typeVerb = item.type === 'found' ? 'Found' : 'Lost';
+        const subtitleAuthor = posterLabel || 'someone';
+        const showSubtitleAuthor = subtitleAuthor !== 'you';
+        const statusLabel = isResolved ? 'Resolved' : 'Open';
+        const actionsOpen = actionsOpenForId === (item._id || item.id);
 
         return (
           <li key={item._id || item.id} className="item">
@@ -42,56 +55,63 @@ export default function ItemsList({
             )}
 
             <div className="item-header">
-              <h3>
-                {item.title}
-                <span
-                  className={
-                    item.type === 'found'
-                      ? 'item-type-badge item-type-found'
-                      : 'item-type-badge item-type-lost'
-                  }
-                >
-                  {item.type === 'found' ? 'Found item' : 'Lost item'}
-                </span>
-              </h3>
+              <div>
+                <h3>{item.title}</h3>
+                <div className="item-header-subtitle">
+                  <span
+                    className={
+                      item.type === 'found'
+                        ? 'item-subtitle-type item-subtitle-type-found'
+                        : 'item-subtitle-type item-subtitle-type-lost'
+                    }
+                  >
+                    {typeVerb}
+                  </span>
+                  {showSubtitleAuthor && <span>{' '}by {subtitleAuthor}</span>}
+                  <span
+                    className={
+                      isResolved
+                        ? 'item-status-inline item-status-inline-resolved'
+                        : 'item-status-inline item-status-inline-open'
+                    }
+                  >
+                    {' '}· {statusLabel}
+                  </span>
+                </div>
+              </div>
 
               <div className="item-owner-actions">
                 {isOwner && (
-                  <button
-                    type="button"
-                    className="btn-edit"
-                    onClick={() => onEdit(item)}
-                  >
-                    Edit
-                  </button>
-                )}
-
-                <button
-                  className={
-                    `status-button ${
-                      isResolved ? 'status-resolved' : 'status-open'
-                    } ` +
-                    (isOwner ? 'status-clickable' : 'status-readonly')
-                  }
-                  onClick={
-                    isOwner
-                      ? () => onToggleResolve(item._id || item.id)
-                      : undefined
-                  }
-                  disabled={!isOwner}
-                  type="button"
-                >
-                  {isResolved ? 'Resolved' : 'Open'}
-                </button>
-
-                {isOwner && (
-                  <button
-                    className="btn-delete"
-                    type="button"
-                    onClick={() => onDelete(item._id)}
-                  >
-                    Delete
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      className="btn-edit"
+                      onClick={() => {
+                        onEdit(item);
+                        setActionsOpenForId(item._id || item.id);
+                      }}
+                    >
+                      Edit
+                    </button>
+                    {actionsOpen && (
+                      <>
+                        <button
+                          type="button"
+                          className="btn-secondary status-action-button"
+                          onClick={() => onToggleResolve(item._id || item.id)}
+                        >
+                          {isResolved ? 'Mark as open' : 'Mark as resolved'}
+                        </button>
+                        <button
+                          className="btn-delete"
+                          type="button"
+                          onClick={() => onDelete(item._id)}
+                        >
+                          Delete
+                        </button>
+                      </>
+                    )}
+                  </>
                 )}
 
                 {!isOwner && user && (
@@ -106,37 +126,38 @@ export default function ItemsList({
               </div>
             </div>
 
-            <div className="desc">{item.description}</div>
-            <div className="meta">
-              {metaPieces.map((piece, index) => (
-                <span
-                  key={index}
-                  className={piece.className}
-                >
-                  {index > 0 && ' · '}
-                  {piece.text}
-                </span>
-              ))}
-            </div>
+            <details className="item-details">
+              <summary className="item-details-summary">Show details</summary>
 
-            <div className="item-timestamps">
-  <details className="item-timestamps-details">
-    <summary className="item-timestamps-summary">
-      <span className="item-timestamps-label">
-        Last updated: {formatDateTime(item.updatedAt || item.createdAt)}
-      </span>
-      <span className="item-timestamps-arrow" aria-hidden="true">
-        ▸
-      </span>
-    </summary>
+              <div className="item-details-body">
+                {item.description && (
+                  <div className="desc">{item.description}</div>
+                )}
 
-    <div className="item-timestamps-body">
-      <div className="item-timestamp-row">
-        Created: {formatDateTime(item.createdAt)}
-      </div>
-    </div>
-  </details>
-</div>
+                {metaPieces.length > 0 && (
+                  <div className="meta">
+                    {metaPieces.map((piece, index) => (
+                      <span
+                        key={index}
+                        className={piece.className}
+                      >
+                        {index > 0 && ' · '}
+                        {piece.text}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                <div className="item-timestamps">
+                  <div className="item-timestamp-primary">
+                    Last updated: {formatDateTime(item.updatedAt || item.createdAt)}
+                  </div>
+                  <div className="item-timestamp-secondary">
+                    Created: {formatDateTime(item.createdAt)}
+                  </div>
+                </div>
+              </div>
+            </details>
           </li>
         );
       })}

@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 export default function ItemForm({
   form,
   editingItem,
@@ -10,6 +12,8 @@ export default function ItemForm({
   onCancelEdit,
   onFileChange,
 }) {
+  const [showDetails, setShowDetails] = useState(false);
+
   return (
     <form className="form" onSubmit={onSubmit}>
       <div>
@@ -29,75 +33,130 @@ export default function ItemForm({
           </div>
         )}
 
+        {/* Always-visible basics */}
         <input
           name="title"
           value={form.title}
           onChange={onChange}
           placeholder="Item title (required)"
         />
+
         <div className="form-row" style={{ marginTop: '8px' }}>
-          <select name="type" value={form.type} onChange={onChange}>
-            <option value="lost">I lost it on...</option>
-            <option value="found">I found it on...</option>
-          </select>
-          <input
-            type="date"
-            name="date"
-            value={form.date}
-            onChange={onChange}
-          />
-        </div>
-        <input
-          name="location"
-          value={form.location}
-          onChange={onChange}
-          placeholder="Location"
-        />
-        <div className="form-row">
-          <input
-            type="text"
-            name="lat"
-            value={form.lat}
-            onChange={onChange}
-            placeholder="Latitude (optional)"
-          />
-          <input
-            type="text"
-            name="lng"
-            value={form.lng}
-            onChange={onChange}
-            placeholder="Longitude (optional)"
-          />
-        </div>
+  <div className="type-toggle">
+    <button
+      type="button"
+      className={
+        form.type === 'lost'
+          ? 'type-toggle-button type-toggle-button--active type-toggle-lost'
+          : 'type-toggle-button type-toggle-lost'
+      }
+      onClick={() =>
+        onChange({ target: { name: 'type', value: 'lost' } })
+      }
+    >
+      Lost item
+    </button>
+
+    <button
+      type="button"
+      className={
+        form.type === 'found'
+          ? 'type-toggle-button type-toggle-button--active type-toggle-found'
+          : 'type-toggle-button type-toggle-found'
+      }
+      onClick={() =>
+        onChange({ target: { name: 'type', value: 'found' } })
+      }
+    >
+      Found item
+    </button>
+  </div>
+</div>
+
         <div className="form-row" style={{ marginTop: '8px' }}>
-          <textarea
-            name="description"
-            value={form.description}
-            onChange={onChange}
-            placeholder="Description"
-          />
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={() => setShowDetails((prev) => !prev)}
+          >
+            {showDetails
+              ? 'Hide additional details'
+              : 'Add more details (optional)'}
+          </button>
         </div>
 
+        {/* Collapsible details section */}
         <div
-          className="form-row"
-          style={{ marginTop: '8px', alignItems: 'center' }}
+          className={
+            showDetails
+              ? 'item-form-details item-form-details--open'
+              : 'item-form-details'
+          }
         >
-          <input
-            type="file"
-            name="image"
-            accept="image/png, image/jpeg, image/jpg"
-            onChange={onFileChange}
-            className="file-input"
-          />
-          {previewImage && (
-            <img
-              src={previewImage}
-              alt="Preview"
-              className="image-preview"
+          <div className="form-row" style={{ marginTop: '8px' }}>
+            <input
+              type="date"
+              name="date"
+              value={form.date}
+              onChange={onChange}
             />
-          )}
+          </div>
+
+          <input
+            name="location"
+            value={form.location}
+            onChange={onChange}
+            placeholder="Location"
+          />
+
+          <div className="form-row">
+            <input
+              type="text"
+              name="lat"
+              value={form.lat}
+              onChange={onChange}
+              placeholder="Latitude (optional)"
+            />
+            <input
+              type="text"
+              name="lng"
+              value={form.lng}
+              onChange={onChange}
+              placeholder="Longitude (optional)"
+            />
+          </div>
+
+          <div className="form-row" style={{ marginTop: '8px' }}>
+            <textarea
+              name="description"
+              value={form.description}
+              onChange={onChange}
+              placeholder="Description"
+            />
+          </div>
+
+          <div
+            className="form-row"
+            style={{ marginTop: '8px', alignItems: 'center' }}
+          >
+            <input
+              type="file"
+              name="image"
+              accept="image/png, image/jpeg, image/jpg"
+              onChange={onFileChange}
+              className="file-input"
+            />
+            {previewImage && (
+              <img
+                src={previewImage}
+                alt="Preview"
+                className="image-preview"
+              />
+            )}
+          </div>
         </div>
 
+        {/* Submit button */}
         <div className="form-row" style={{ marginTop: '8px' }}>
           <button className="btn" type="submit" disabled={submitting || uploading}>
             {uploading
@@ -111,6 +170,7 @@ export default function ItemForm({
               : 'Submit Item'}
           </button>
         </div>
+
         {message && (
           <div className={message.type === 'error' ? 'error' : 'success'}>
             {message.text}

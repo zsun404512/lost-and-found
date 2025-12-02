@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 export default function ItemsToolbar({
   searchQuery,
   onSearchChange,
@@ -10,8 +12,11 @@ export default function ItemsToolbar({
   searchHistory,
   onSearchSubmit,
   onHistorySelect,
-  onClearHistory
+  onClearHistory,
+  mapFilterActive,
+  onMapFilterChange
 }) {
+  const [filtersOpen, setFiltersOpen] = useState(false);
   return (
     <>
       <div className="filter-container">
@@ -77,55 +82,130 @@ export default function ItemsToolbar({
             </div>
           </div>
         )}
-        <select
-          className="type-filter"
-          value={filterType}
-          onChange={(e) => onFilterChange(e.target.value)}
-          style={{ marginBottom: '16px', marginRight: '8px' }}
-        >
-          <option value="all">All Items</option>
-          <option value="lost">Lost Items</option>
-          <option value="found">Found Items</option>
-        </select>
+        <div className="filters-bar">
+          <button
+            type="button"
+            className="btn-secondary filters-toggle"
+            onClick={() => setFiltersOpen((open) => !open)}
+          >
+            {filtersOpen ? 'Hide filters' : 'Show filters'}
+          </button>
+        </div>
 
-        <select
-          className="type-filter"
-          value={statusFilter}
-          onChange={(e) => onStatusFilterChange(e.target.value)}
-          style={{ marginBottom: '16px' }}
-        >
-          <option value="open">Open Only</option>
-          <option value="resolved">Resolved Only</option>
-          <option value="all">All Statuses</option>
-        </select>
-      </div>
+        {filtersOpen && (
+          <div className="filters-panel">
+            {/* Item type */}
+            <div className="filters-group">
+              <div className="filters-label">Item type</div>
+              <div className="filters-options">
+                <button
+                  type="button"
+                  className={
+                    filterType === 'all'
+                      ? 'filters-chip filters-chip--active'
+                      : 'filters-chip'
+                  }
+                  onClick={() => onFilterChange('all')}
+                >
+                  All
+                </button>
+                <button
+                  type="button"
+                  className={
+                    filterType === 'lost'
+                      ? 'filters-chip filters-chip--active'
+                      : 'filters-chip'
+                  }
+                  onClick={() => onFilterChange('lost')}
+                >
+                  Lost
+                </button>
+                <button
+                  type="button"
+                  className={
+                    filterType === 'found'
+                      ? 'filters-chip filters-chip--active'
+                      : 'filters-chip'
+                  }
+                  onClick={() => onFilterChange('found')}
+                >
+                  Found
+                </button>
+              </div>
+            </div>
 
-      <div className="view-toggle">
-        <button
-          type="button"
-          className={
-            viewMode === 'list'
-              ? 'view-toggle-button active'
-              : 'view-toggle-button'
-          }
-          onClick={() => onViewModeChange('list')}
-          aria-pressed={viewMode === 'list'}
-        >
-          List view
-        </button>
-        <button
-          type="button"
-          className={
-            viewMode === 'map'
-              ? 'view-toggle-button active'
-              : 'view-toggle-button'
-          }
-          onClick={() => onViewModeChange('map')}
-          aria-pressed={viewMode === 'map'}
-        >
-          Map view
-        </button>
-      </div>
+            {/* Status */}
+            <div className="filters-group">
+              <div className="filters-label">Status</div>
+              <div className="filters-options">
+                <button
+                  type="button"
+                  className={
+                    statusFilter === 'open'
+                      ? 'filters-chip filters-chip--active'
+                      : 'filters-chip'
+                  }
+                  onClick={() => onStatusFilterChange('open')}
+                >
+                  Open only
+                </button>
+                <button
+                  type="button"
+                  className={
+                    statusFilter === 'resolved'
+                      ? 'filters-chip filters-chip--active'
+                      : 'filters-chip'
+                  }
+                  onClick={() => onStatusFilterChange('resolved')}
+                >
+                  Resolved only
+                </button>
+                <button
+                  type="button"
+                  className={
+                    statusFilter === 'all'
+                      ? 'filters-chip filters-chip--active'
+                      : 'filters-chip'
+                  }
+                  onClick={() => onStatusFilterChange('all')}
+                >
+                  All
+                </button>
+              </div>
+            </div>
+
+            {/* View + map radius */}
+            <div className="filters-group">
+              <div className="filters-label">View</div>
+              <div className="filters-options-column">
+                <label className="filters-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={viewMode === 'map'}
+                    onChange={(e) =>
+                      onViewModeChange(e.target.checked ? 'map' : 'list')
+                    }
+                  />
+                  <span>Show map view</span>
+                </label>
+
+                <label className="filters-checkbox filters-checkbox-nested">
+                  <input
+                    type="checkbox"
+                    disabled={viewMode !== 'map'}
+                    checked={viewMode === 'map' && mapFilterActive}
+                    onChange={(e) => onMapFilterChange(e.target.checked)}
+                  />
+                  <span>
+                    Only show items in current map area
+                    {viewMode !== 'map' && ' (enable map view first)'}
+                  </span>
+                </label>
+              </div>
+            </div>
+          </div>
+        )}
+      </div> {/* closes .filter-container */}
     </>
   );
 }
