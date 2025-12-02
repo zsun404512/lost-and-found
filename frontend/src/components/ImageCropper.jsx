@@ -15,37 +15,32 @@ async function getCroppedImg(imageSrc, pixelCrop, rotation = 0) {
   });
 
   const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
-
-  const safeArea = Math.max(image.width, image.height) * 2;
-
-  canvas.width = safeArea;
-  canvas.height = safeArea;
-
-  ctx.translate(safeArea / 2, safeArea / 2);
-  ctx.rotate(getRadianAngle(rotation));
-  ctx.translate(-safeArea / 2, -safeArea / 2);
-
-  ctx.drawImage(image, (safeArea - image.width) / 2, (safeArea - image.height) / 2);
-
-  const data = ctx.getImageData(0, 0, safeArea, safeArea);
-
   canvas.width = pixelCrop.width;
   canvas.height = pixelCrop.height;
+  const ctx = canvas.getContext('2d');
 
-  ctx.putImageData(
-    data,
-    Math.round(0 - (safeArea / 2 - image.width / 2) - pixelCrop.x),
-    Math.round(0 - (safeArea / 2 - image.height / 2) - pixelCrop.y),
+  // Move canvas origin to center
+  ctx.translate(canvas.width / 2, canvas.height / 2);
+  ctx.rotate((rotation * Math.PI) / 180);
+  ctx.translate(-canvas.width / 2, -canvas.height / 2);
+
+  // Draw the cropped portion directly
+  ctx.drawImage(
+    image,
+    pixelCrop.x,
+    pixelCrop.y,
+    pixelCrop.width,
+    pixelCrop.height,
+    0,
+    0,
+    pixelCrop.width,
+    pixelCrop.height
   );
 
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => {
-      if (!blob) {
-        reject(new Error('Canvas is empty'));
-        return;
-      }
-      resolve(blob);
+      if (!blob) reject(new Error('Canvas is empty'));
+      else resolve(blob);
     }, 'image/jpeg', 0.9);
   });
 }
@@ -60,9 +55,6 @@ export default function ImageCropper({ imageSrc, onCancel, onApply }) {
   }, []);
 
   const handleApply = useCallback(async () => {
-    if (!croppedAreaPixels) {
-      return;
-    }
     try {
       const blob = await getCroppedImg(imageSrc, croppedAreaPixels, 0);
       const file = new File([blob], 'cropped-image.jpg', { type: 'image/jpeg' });
@@ -89,7 +81,7 @@ export default function ImageCropper({ imageSrc, onCancel, onApply }) {
               onCropChange={setCrop}
               onZoomChange={setZoom}
               onCropComplete={onCropComplete}
-              restrictPosition={false}
+              restrictPosition
               cropShape="rect"
               showGrid={false}
             />
@@ -108,6 +100,10 @@ export default function ImageCropper({ imageSrc, onCancel, onApply }) {
               onChange={(e) => setZoom(Number(e.target.value))}
             />
           </div>
+          <p className="image-cropper-warning">
+            Parts of the image outside the rectangle will be permanently removed for this upload.
+            Make sure the image fills the rectangle to avoid empty borders.
+          </p>
         </div>
         <div className="image-cropper-footer">
           <button type="button" className="btn btn-secondary" onClick={onCancel}>
