@@ -45,7 +45,7 @@ async function getCroppedImg(imageSrc, pixelCrop, rotation = 0) {
   });
 }
 
-export default function ImageCropper({ imageSrc, onCancel, onApply }) {
+export default function ImageCropper({ imageSrc, onCancel, onApply, onDone, onRevert }) {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
@@ -54,7 +54,7 @@ export default function ImageCropper({ imageSrc, onCancel, onApply }) {
     setCroppedAreaPixels(croppedPixels);
   }, []);
 
-  const handleApply = useCallback(async () => {
+  const handlePreview = useCallback(async () => {
     try {
       const blob = await getCroppedImg(imageSrc, croppedAreaPixels, 0);
       const file = new File([blob], 'cropped-image.jpg', { type: 'image/jpeg' });
@@ -109,8 +109,18 @@ export default function ImageCropper({ imageSrc, onCancel, onApply }) {
           <button type="button" className="btn btn-secondary" onClick={onCancel}>
             Cancel
           </button>
-          <button type="button" className="btn" onClick={handleApply}>
-            Use this image
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={onRevert}
+          >
+            Revert
+          </button>
+          <button type="button" className="btn" onClick={handlePreview}>
+            Preview
+          </button>
+          <button type="button" className="btn" onClick={onDone}>
+            Done
           </button>
         </div>
       </div>

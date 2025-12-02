@@ -39,6 +39,8 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
   const [selectedFile, setSelectedFile] = useState(null);
   const [editedFile, setEditedFile] = useState(null);
   const [previewImage, setPreviewImage] = useState(null);
+  const [originalPreviewImage, setOriginalPreviewImage] = useState(null);
+  const [showCropper, setShowCropper] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const { setItems, setSearchQuery, setFilterType } = itemsState;
@@ -89,6 +91,7 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
     const existingImage = getItemImageUrl(item);
 
     setPreviewImage(existingImage);
+    setOriginalPreviewImage(existingImage);
     setSelectedFile(null);
     setMessage(null);
 
@@ -103,6 +106,8 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
     setSelectedFile(null);
     setEditedFile(null);
     setPreviewImage(null);
+    setOriginalPreviewImage(null);
+    setShowCropper(false);
     setMessage(null);
   }
 
@@ -123,6 +128,8 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
         setSelectedFile(null);
         setEditedFile(null);
         setPreviewImage(null);
+        setOriginalPreviewImage(null);
+        setShowCropper(false);
         setMessage({ type: 'error', text: 'Images only! (jpg, jpeg, png)' });
         if (e.target && typeof e.target.value !== 'undefined') {
           e.target.value = null;
@@ -136,17 +143,40 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
       }
       setSelectedFile(file);
       setEditedFile(null);
-      setPreviewImage(URL.createObjectURL(file));
+      const url = URL.createObjectURL(file);
+      setPreviewImage(url);
+      setOriginalPreviewImage(url);
+      setShowCropper(true);
     } else {
       setSelectedFile(null);
       setEditedFile(null);
       setPreviewImage(null);
+      setOriginalPreviewImage(null);
+      setShowCropper(false);
     }
   };
 
   const handleImageCropped = (file, previewUrl) => {
     setEditedFile(file);
     setPreviewImage(previewUrl);
+  };
+
+  const handleDoneCrop = () => {
+    setShowCropper(false);
+  };
+
+  const handleRevertCrop = () => {
+    if (!selectedFile && !originalPreviewImage) {
+      return;
+    }
+    setEditedFile(null);
+    if (originalPreviewImage) {
+      setPreviewImage(originalPreviewImage);
+    } else if (selectedFile) {
+      const url = URL.createObjectURL(selectedFile);
+      setPreviewImage(url);
+      setOriginalPreviewImage(url);
+    }
   };
 
   async function handleSubmit(e) {
@@ -395,6 +425,8 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
     uploading,
     selectedFile,
     previewImage,
+    showCropper,
+    originalPreviewImage,
     submitting,
     message,
     handleChange,
@@ -402,6 +434,8 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
     handleCancelEdit,
     handleFileChange,
     handleImageCropped,
+    handleDoneCrop,
+    handleRevertCrop,
     handleSubmit,
     handleDelete,
     handleToggleResolve,

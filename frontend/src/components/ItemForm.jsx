@@ -12,7 +12,10 @@ export default function ItemForm({
   onSubmit,
   onCancelEdit,
   onFileChange,
+  showCropper,
   onImageCropped,
+  onDoneCrop,
+  onRevertCrop,
 }) {
   const [showDetails, setShowDetails] = useState(false);
 
@@ -158,11 +161,13 @@ export default function ItemForm({
           </div>
         </div>
 
-        {previewImage && (
+        {showCropper && previewImage && (
           <ImageCropper
             imageSrc={previewImage}
-            onCancel={() => onImageCropped(null, null)}
+            onCancel={onDoneCrop}
             onApply={onImageCropped}
+            onDone={onDoneCrop}
+            onRevert={onRevertCrop}
           />
         )}
 

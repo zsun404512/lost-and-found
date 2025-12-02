@@ -82,7 +82,10 @@ function Home() {
     uploading,
     previewImage,
     submitting,
+    showCropper,
     handleImageCropped,
+    handleDoneCrop,
+    handleRevertCrop,
     handleChange,
     handleStartEdit,
     handleCancelEdit,
@@ -166,7 +169,10 @@ function Home() {
               onSubmit={handleSubmit}
               onCancelEdit={handleCancelEdit}
               onFileChange={handleFileChange}
+              showCropper={showCropper}
               onImageCropped={handleImageCropped}
+              onDoneCrop={handleDoneCrop}
+              onRevertCrop={handleRevertCrop}
             />
           )}
         </>
