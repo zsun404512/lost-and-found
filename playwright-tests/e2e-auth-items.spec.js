@@ -179,3 +179,27 @@ test('user can search items and see only matching results', async ({ page }) => 
   await expect(matchCard).toBeVisible();
   await expect(nonMatchCard).toHaveCount(0);
 });
+
+// 7. Owner marks post as resolved
+test('owner can mark an item as resolved via the UI', async({ page }) => {
+  const email = makeUniqueEmail('resolve-owner');
+  const password = 'StrongPass1!';
+  const title = `Resolve flow item ${Date.now()}`;
+
+  await signupViaUi(page, email, password);
+  await loginViaUi(page, email, password);
+
+  await createItemViaUi(page, title);
+
+  const itemCard = page.locator('.item', { hasText: title });
+  await expect(itemCard).toBeVisible();
+
+  const statusButton = itemCard.getByRole('button', { name: /Open|Resolved/ });
+  await expect(statusButton).toBeVisible();
+  await expect(statusButton).toHaveText('Open');
+
+  await statusButton.click();
+
+  await expect(page.getByText('Item marked as resolved.')).toBeVisible();
+  await expect(statusButton).toHaveText('Resolved');
+});
