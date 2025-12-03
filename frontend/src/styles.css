@@ -1154,3 +1154,71 @@ input[type="file"]::file-selector-button:hover {
   background-color: #dcfce7; /* light green */
   color: #166534;            /* dark green */
 }
+
+/* Image cropper overlay and modal */
+.image-cropper-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.image-cropper-modal {
+  background: var(--card);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.25);
+  width: min(480px, 100% - 32px);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.image-cropper-header {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.image-cropper-body {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.image-cropper-crop-area {
+  position: relative;
+  width: 100%;
+  height: 260px;
+  background: #020617;
+}
+
+.image-cropper-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.image-cropper-zoom-label {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.image-cropper-warning {
+  margin-top: 4px;
+  font-size: 11px;
+  color: #92400e;
+}
+
+.image-cropper-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 14px 12px;
+  border-top: 1px solid var(--border);
+}

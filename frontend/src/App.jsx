@@ -82,6 +82,10 @@ function Home() {
     uploading,
     previewImage,
     submitting,
+    showCropper,
+    handleImageCropped,
+    handleDoneCrop,
+    handleRevertCrop,
     handleChange,
     handleStartEdit,
     handleCancelEdit,
@@ -125,63 +129,65 @@ function Home() {
     <div className="app">
       <h1 className="title">UCLostAndfound</h1>
 
-     {user ? (
-  <>
+      {user ? (
+        <>
+          {!showForm ? (
+            <div className="home-hero">
+              <div className="home-hero-content">
+                <div className="home-hero-text">
+                  <h2 className="home-hero-title">Post a lost or found item</h2>
+                  <p className="home-hero-subtitle">
+                    Share a quick title and whether it was lost or found. You can add
+                    more details after starting your report.
+                  </p>
+                  <button
+                    type="button"
+                    className="btn home-hero-button"
+                    onClick={() => setShowForm(true)}
+                  >
+                    Report an item
+                  </button>
+                </div>
 
-
-    {!showForm ? (
-      <div className="home-hero">
-        <div className="home-hero-content">
-          <div className="home-hero-text">
-            <h2 className="home-hero-title">Post a lost or found item</h2>
-            <p className="home-hero-subtitle">
-              Share a quick title and whether it was lost or found. You can add
-              more details after starting your report.
-            </p>
-            <button
-              type="button"
-              className="btn home-hero-button"
-              onClick={() => setShowForm(true)}
-            >
-              Report an item
-            </button>
-          </div>
-
-          <div className="home-hero-illustration">
-            <img
-              src="/decorations/magnifying-glass.png"
-              alt="Search for lost items"
+                <div className="home-hero-illustration">
+                  <img
+                    src="/decorations/magnifying-glass.png"
+                    alt="Search for lost items"
+                  />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <ItemForm
+              form={form}
+              editingItem={editingItem}
+              uploading={uploading}
+              previewImage={previewImage}
+              submitting={submitting}
+              message={message}
+              onChange={handleChange}
+              onSubmit={handleSubmit}
+              onCancelEdit={handleCancelEdit}
+              onFileChange={handleFileChange}
+              showCropper={showCropper}
+              onImageCropped={handleImageCropped}
+              onDoneCrop={handleDoneCrop}
+              onRevertCrop={handleRevertCrop}
             />
-          </div>
-        </div>
-      </div>
-    ) : (
-      <ItemForm
-        form={form}
-        editingItem={editingItem}
-        uploading={uploading}
-        previewImage={previewImage}
-        submitting={submitting}
-        message={message}
-        onChange={handleChange}
-        onSubmit={handleSubmit}
-        onCancelEdit={handleCancelEdit}
-        onFileChange={handleFileChange}
-      />
-    )}
-  </>
-) : (
-  <p className="lead">
-    Please{' '}
-    <Link
-      to="/login"
-      style={{ color: 'var(--accent)', fontWeight: '500' }}
-    >
-      log in
-    </Link>{' '}
-    to post a lost or found item.
-  </p>
-)}
+          )}
+        </>
+      ) : (
+        <p className="lead">
+          Please{' '}
+          <Link
+            to="/login"
+            style={{ color: 'var(--accent)', fontWeight: '500' }}
+          >
+            log in
+          </Link>{' '}
+          to post a lost or found item.
+        </p>
+      )}
 
       <h2 className="subtitle">Recent Items</h2>
 
