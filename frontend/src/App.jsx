@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { BrowserRouter, Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
-
 import LoginPage from './pages/LoginPage';
 import SignUpPage from './pages/SignUpPage';
 import MessagesPage from './pages/MessagesPage.jsx';
@@ -12,11 +11,11 @@ import ItemsMap from './components/ItemsMap.jsx';
 import { useAuth } from './context/AuthContext';
 import { useItems } from './hooks/useItems';
 import { useItemForm } from './hooks/useItemForm';
+import { filterItemsByBounds } from './utils/items';
 
 function Home() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-
   const [message, setMessage] = useState(null);
   const [mapBounds, setMapBounds] = useState(null);
   const [mapFilterActive, setMapFilterActive] = useState(false);
@@ -62,6 +61,7 @@ function Home() {
     localStorage.removeItem('searchHistory');
   };
 
+  // const variables and functions
   const itemsState = useItems({ setMessage });
   const {
     items,
@@ -75,7 +75,6 @@ function Home() {
     statusFilter,
     setStatusFilter,
   } = itemsState;
-
   const {
     form,
     editingItem,
@@ -103,32 +102,12 @@ function Home() {
     navigate,
   });
 
-  const visibleItems = mapFilterActive && mapBounds
-    ? items.filter((it) => {
-        const rawLat = it.lat;
-        const rawLng = it.lng;
-
-        const hasLat = rawLat !== undefined && rawLat !== null && rawLat !== '';
-        const hasLng = rawLng !== undefined && rawLng !== null && rawLng !== '';
-        if (!hasLat || !hasLng) return false;
-
-        const lat = typeof rawLat === 'number' ? rawLat : Number(rawLat);
-        const lng = typeof rawLng === 'number' ? rawLng : Number(rawLng);
-        if (Number.isNaN(lat) || Number.isNaN(lng)) return false;
-
-        return (
-          lat >= mapBounds.south &&
-          lat <= mapBounds.north &&
-          lng >= mapBounds.west &&
-          lng <= mapBounds.east
-        );
-      })
-    : items;
+  // show filter items if in bounds
+  const visibleItems = mapFilterActive && mapBounds ? filterItemsByBounds(items, mapBounds) : items;
 
   return (
     <div className="app">
       <h1 className="title">UCLostAndfound</h1>
-
       {user ? (
         <>
           {!showForm ? (
@@ -148,7 +127,6 @@ function Home() {
                     Report an item
                   </button>
                 </div>
-
                 <div className="home-hero-illustration">
                   <img
                     src="/decorations/magnifying-glass.png"
@@ -188,9 +166,7 @@ function Home() {
           to post a lost or found item.
         </p>
       )}
-
       <h2 className="subtitle">Recent Items</h2>
-
       <ItemsToolbar
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
@@ -207,7 +183,6 @@ function Home() {
         mapFilterActive={mapFilterActive}
   onMapFilterChange={setMapFilterActive}
       />
-
       {!loading && (
         <div className="items-count" style={{ marginBottom: '12px', color: '#666', fontSize: '0.9em' }}>
           {(() => {
@@ -218,7 +193,6 @@ function Home() {
           })()}
         </div>
       )}
-
       {viewMode === 'map' && mapBounds && (
         <div className="map-filter-indicator" style={{ marginBottom: '8px' }}>
           <button
@@ -235,7 +209,6 @@ function Home() {
           )}
         </div>
       )}
-
       {loading ? (
         <p className="loading">Loading...</p>
       ) : (
@@ -305,18 +278,14 @@ function Home() {
 }
 
 // serves as router
-
 function AppShell() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-
   const onMessagesPage = location.pathname === '/messages';
-
   const handleMessagesClick = () => {
     navigate('/messages');
   };
-
   const handlePostsClick = () => {
     navigate('/');
   };

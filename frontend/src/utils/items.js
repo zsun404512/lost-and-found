@@ -26,3 +26,32 @@ export function formatDateTime(isoString) {
     minute: '2-digit',
   });
 }
+
+export function filterItemsByBounds(items, mapBounds) {
+  if (!mapBounds) return items;
+
+  return items.filter((it) => {
+    const rawLat = it.lat;
+    const rawLng = it.lng;
+    const hasLat = rawLat !== undefined && rawLat !== null && rawLat !== '';
+    const hasLng = rawLng !== undefined && rawLng !== null && rawLng !== '';
+
+    if (!hasLat || !hasLng) {
+      return false;
+    }
+
+    const lat = typeof rawLat === 'number' ? rawLat : Number(rawLat);
+    const lng = typeof rawLng === 'number' ? rawLng : Number(rawLng);
+
+    if (Number.isNaN(lat) || Number.isNaN(lng)) {
+      return false;
+    }
+
+    return (
+      lat >= mapBounds.south &&
+      lat <= mapBounds.north &&
+      lng >= mapBounds.west &&
+      lng <= mapBounds.east
+    );
+  });
+}
