@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 
+// schema requires users and timestamps
 const conversationSchema = new mongoose.Schema({
   participants: [
     {
