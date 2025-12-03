@@ -31,10 +31,29 @@ async function loginViaUi(page, email, password) {
 
 async function createItemViaUi(page, title) {
   await expect(page.getByText('UCLostAndfound')).toBeVisible();
+  
+  const reportButton = page.getByRole('button', { name: /report an item/i });
+  if (await reportButton.count()) {
+    await reportButton.click();
+  }
 
   await page.getByPlaceholder('Item title (required)').fill(title);
-  await page.getByPlaceholder('Location').fill('Campus library');
-  await page.getByPlaceholder('Description', { exact: true }).fill('E2E test item');
+
+  let locationInput = page.getByPlaceholder('Location');
+  if ((await locationInput.count()) === 0) {
+    const addDetailsButton = page.getByRole('button', {
+      name: /add more details \(optional\)/i,
+    });
+    if (await addDetailsButton.count()) {
+      await addDetailsButton.click();
+    }
+    locationInput = page.getByPlaceholder('Location');
+  }
+
+  await locationInput.fill('Campus library');
+  await page
+    .getByPlaceholder('Description', { exact: true })
+    .fill('E2E test item');
 
   await page.getByRole('button', { name: /submit item/i }).click();
 
@@ -194,12 +213,16 @@ test('owner can mark an item as resolved via the UI', async({ page }) => {
   const itemCard = page.locator('.item', { hasText: title });
   await expect(itemCard).toBeVisible();
 
-  const statusButton = itemCard.getByRole('button', { name: /Open|Resolved/ });
+  const statusInline = itemCard.locator('.item-status-inline');
+  await expect(statusInline).toHaveText(/Open/i);
+
+  await itemCard.getByRole('button', { name: /edit/i }).click();
+
+  const statusButton = itemCard.getByRole('button', { name: /mark as resolved/i });
   await expect(statusButton).toBeVisible();
-  await expect(statusButton).toHaveText('Open');
 
   await statusButton.click();
 
   await expect(page.getByText('Item marked as resolved.')).toBeVisible();
-  await expect(statusButton).toHaveText('Resolved');
+  await expect(statusInline).toHaveText(/Resolved/i);
 });

@@ -20,6 +20,11 @@ function renderLoggedInApp() {
   );
 }
 
+async function openFiltersPanel() {
+  const toggleButton = await screen.findByRole('button', { name: /show filters/i });
+  fireEvent.click(toggleButton);
+}
+
 describe('Items filters', () => {
   beforeEach(() => {
     // stub fetch to avoid real API calls
@@ -49,15 +54,10 @@ describe('Items filters', () => {
     expect(firstUrl).toContain('/api/items');
     expect(firstUrl).toContain('status=open');
 
-    // find the status dropdown by its visible option text "Open Only"
-    const statusOption = await screen.findByText('Open Only');
-    const statusSelect = statusOption.closest('select');
-    if (!statusSelect) {
-      throw new Error('Could not find status filter <select>');
-    }
+    await openFiltersPanel();
 
-    // change status to resolved only
-    fireEvent.change(statusSelect, { target: { value: 'resolved' } });
+    const resolvedButton = await screen.findByRole('button', { name: /resolved only/i });
+    fireEvent.click(resolvedButton);
 
     // wait until some fetch call uses status=resolved
     await waitFor(() => {
@@ -82,15 +82,10 @@ describe('Items filters', () => {
     expect(firstUrl).toContain('/api/items');
     expect(firstUrl).not.toContain('type=');
 
-    // find the type dropdown by its visible option text "Found Items"
-    const typeOption = await screen.findByText('Found Items');
-    const typeSelect = typeOption.closest('select');
-    if (!typeSelect) {
-      throw new Error('Could not find type filter <select>');
-    }
+    await openFiltersPanel();
 
-    // change type to found
-    fireEvent.change(typeSelect, { target: { value: 'found' } });
+    const foundButton = await screen.findByRole('button', { name: /^found$/i });
+    fireEvent.click(foundButton);
 
     // wait until some fetch call uses type=found
     await waitFor(() => {
@@ -115,22 +110,13 @@ describe('Items filters', () => {
     expect(firstUrl).toContain('/api/items');
     expect(firstUrl).toContain('status=open');
 
-    // locate both dropdowns by their default option labels
-    const typeOption = await screen.findByText('All Items');
-    const typeSelect = typeOption.closest('select');
-    if (!typeSelect) {
-      throw new Error('Could not find type filter <select>');
-    }
+    await openFiltersPanel();
 
-    const statusOption = await screen.findByText('Open Only');
-    const statusSelect = statusOption.closest('select');
-    if (!statusSelect) {
-      throw new Error('Could not find status filter <select>');
-    }
+    const typeFoundButton = await screen.findByRole('button', { name: /^found$/i });
+    const statusResolvedButton = await screen.findByRole('button', { name: /resolved only/i });
 
-    // change both filters
-    fireEvent.change(typeSelect, { target: { value: 'found' } });
-    fireEvent.change(statusSelect, { target: { value: 'resolved' } });
+    fireEvent.click(typeFoundButton);
+    fireEvent.click(statusResolvedButton);
 
     // wait until the latest fetch uses both filters
     await waitFor(() => {
