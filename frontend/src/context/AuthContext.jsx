@@ -1,24 +1,66 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { jwtDecode } from 'jwt-decode'; // We need to install this!
+import { jwtDecode } from 'jwt-decode';
 
 // Create the context
 const AuthContext = createContext(null);
 
+// Helper function to check if token is expired
+const isTokenExpired = (token) => {
+  try {
+    const decoded = jwtDecode(token);
+    const currentTime = Date.now() / 1000; // Convert to seconds
+    return decoded.exp < currentTime;
+  } catch (err) {
+    return true; // If we can't decode, consider it expired
+  }
+};
+
 // Wraps the entire app by providing auth context to all children
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
+
+  // Function to clear user and token (redirect will be handled by components)
+  const handleExpiredToken = () => {
+    // console.log('Token expired, clearing session');
+    localStorage.removeItem('token');
+    setUser(null);
+    // Redirect will be handled by components that check user state
+    window.location.href = '/login';
+  };
+
+  // Check token expiration periodically
+  useEffect(() => {
+    const checkTokenExpiration = () => {
+      const token = localStorage.getItem('token');
+      if (token && isTokenExpired(token)) {
+        handleExpiredToken();
+      }
+    };
+
+    // Check immediately
+    checkTokenExpiration();
+
+    // Check every minute
+    const interval = setInterval(checkTokenExpiration, 60000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   // On app load, check if a token already exists in localStorage
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
       try {
+        // Check if token is expired
+        if (isTokenExpired(token)) {
+          handleExpiredToken();
+          return;
+        }
         const decodedUser = jwtDecode(token);
-        // TODO: Check if token is expired!
         setUser(decodedUser);
       } catch (err) {
         console.error('Invalid token', err);
-        localStorage.removeItem('token');
+        handleExpiredToken();
       }
     }
   }, []);
@@ -60,6 +102,42 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('token');
     // 2. Clear the user from state
     setUser(null);
+    // 3. Redirect to login
+    window.location.href = '/login';
+  };
+
+  // Helper function for authenticated API calls that handles 401 responses
+  const authenticatedFetch = async (url, options = {}) => {
+    const token = localStorage.getItem('token');
+    
+    // Check if token is expired before making the request
+    if (token && isTokenExpired(token)) {
+      handleExpiredToken();
+      throw new Error('Session expired');
+    }
+
+    const headers = {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    };
+
+    // Add token to headers if it exists
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    const response = await fetch(url, {
+      ...options,
+      headers,
+    });
+
+    // Handle 401 Unauthorized responses (token expired or invalid)
+    if (response.status === 401) {
+      handleExpiredToken();
+      throw new Error('Session expired. Please log in again.');
+    }
+
+    return response;
   };
 
   // This object is what all children components will receive.
@@ -67,6 +145,7 @@ export function AuthProvider({ children }) {
     user,
     login,
     logout,
+    authenticatedFetch,
   };
 
   return (
