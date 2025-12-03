@@ -65,6 +65,18 @@ export default function ImageCropper({ imageSrc, onCancel, onApply, onDone, onRe
     }
   }, [croppedAreaPixels, imageSrc, onApply, onCancel]);
 
+  const handleRevertClick = () => {
+    // Reset crop UI back to initial state
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
+    setCroppedAreaPixels(null);
+
+    // Reset image/file state in parent
+    if (onRevert) {
+      onRevert();
+    }
+  };
+
   return (
     <div className="image-cropper-backdrop">
       <div className="image-cropper-modal">
@@ -112,7 +124,7 @@ export default function ImageCropper({ imageSrc, onCancel, onApply, onDone, onRe
           <button
             type="button"
             className="btn btn-secondary"
-            onClick={onRevert}
+            onClick={handleRevertClick}
           >
             Revert
           </button>
