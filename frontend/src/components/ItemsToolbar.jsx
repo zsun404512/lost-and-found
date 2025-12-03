@@ -14,7 +14,9 @@ export default function ItemsToolbar({
   onHistorySelect,
   onClearHistory,
   mapFilterActive,
-  onMapFilterChange
+  onMapFilterChange,
+  ownOnly,
+  onOwnOnlyChange,
 }) {
   const [filtersOpen, setFiltersOpen] = useState(false);
   return (
@@ -170,6 +172,34 @@ export default function ItemsToolbar({
                   onClick={() => onStatusFilterChange('all')}
                 >
                   All
+                </button>
+              </div>
+            </div>
+
+            <div className="filters-group">
+              <div className="filters-label">Posts</div>
+              <div className="filters-options">
+                <button
+                  type="button"
+                  className={
+                    !ownOnly
+                      ? 'filters-chip filters-chip--active'
+                      : 'filters-chip'
+                  }
+                  onClick={() => onOwnOnlyChange(false)}
+                >
+                  All posts
+                </button>
+                <button
+                  type="button"
+                  className={
+                    ownOnly
+                      ? 'filters-chip filters-chip--active'
+                      : 'filters-chip'
+                  }
+                  onClick={() => onOwnOnlyChange(true)}
+                >
+                  My posts only
                 </button>
               </div>
             </div>
