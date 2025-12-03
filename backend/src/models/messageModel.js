@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 
+// schema utilizes conversationId, senderId, body, and readBy
 const messageSchema = new mongoose.Schema({
   conversationId: {
     type: mongoose.Schema.Types.ObjectId,

@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-// user schema
+// schema utilizes email and password
 const userSchema = new mongoose.Schema({
     email: {
         type: String,
