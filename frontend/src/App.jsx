@@ -208,6 +208,17 @@ function Home() {
   onMapFilterChange={setMapFilterActive}
       />
 
+      {!loading && (
+        <div className="items-count" style={{ marginBottom: '12px', color: '#666', fontSize: '0.9em' }}>
+          {(() => {
+            const count = viewMode === 'map' && mapFilterActive ? visibleItems.length : items.length;
+            if (count === 0) return 'No items found';
+            if (count === 1) return '1 item found';
+            return `${count} items found`;
+          })()}
+        </div>
+      )}
+
       {viewMode === 'map' && mapBounds && (
         <div className="map-filter-indicator" style={{ marginBottom: '8px' }}>
           <button
