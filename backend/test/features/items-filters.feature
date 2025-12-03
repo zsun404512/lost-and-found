@@ -25,3 +25,9 @@ Feature: Items filters on /api/items
     Then the response status should be 200
     And every item in the response JSON should have status "open" and type "found"
 
+  Scenario: Default items request shows only open items
+    Given there are items in the system with different status and type
+    When I send a GET request to "/api/items"
+    Then the response status should be 200
+    And every item in the response JSON should have status "open"
+
