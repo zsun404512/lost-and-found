@@ -37,7 +37,10 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
   const [editingItem, setEditingItem] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [editedFile, setEditedFile] = useState(null);
   const [previewImage, setPreviewImage] = useState(null);
+  const [originalPreviewImage, setOriginalPreviewImage] = useState(null);
+  const [showCropper, setShowCropper] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const { setItems, setSearchQuery, setFilterType } = itemsState;
@@ -88,6 +91,7 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
     const existingImage = getItemImageUrl(item);
 
     setPreviewImage(existingImage);
+    setOriginalPreviewImage(existingImage);
     setSelectedFile(null);
     setMessage(null);
 
@@ -100,7 +104,10 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
     setEditingItem(null);
     setForm(EMPTY_FORM);
     setSelectedFile(null);
+    setEditedFile(null);
     setPreviewImage(null);
+    setOriginalPreviewImage(null);
+    setShowCropper(false);
     setMessage(null);
   }
 
@@ -119,7 +126,10 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
       // supported image. This makes sure PDFs of any size never get uploaded.
       if (!isMimeOk && !isExtOk) {
         setSelectedFile(null);
+        setEditedFile(null);
         setPreviewImage(null);
+        setOriginalPreviewImage(null);
+        setShowCropper(false);
         setMessage({ type: 'error', text: 'Images only! (jpg, jpeg, png)' });
         if (e.target && typeof e.target.value !== 'undefined') {
           e.target.value = null;
@@ -132,10 +142,40 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
         return;
       }
       setSelectedFile(file);
-      setPreviewImage(URL.createObjectURL(file));
+      setEditedFile(null);
+      const url = URL.createObjectURL(file);
+      setPreviewImage(url);
+      setOriginalPreviewImage(url);
+      setShowCropper(true);
     } else {
       setSelectedFile(null);
+      setEditedFile(null);
       setPreviewImage(null);
+      setOriginalPreviewImage(null);
+      setShowCropper(false);
+    }
+  };
+
+  const handleImageCropped = (file, previewUrl) => {
+    setEditedFile(file);
+    setPreviewImage(previewUrl);
+  };
+
+  const handleDoneCrop = () => {
+    setShowCropper(false);
+  };
+
+  const handleRevertCrop = () => {
+    if (!selectedFile && !originalPreviewImage) {
+      return;
+    }
+    setEditedFile(null);
+    if (originalPreviewImage) {
+      setPreviewImage(originalPreviewImage);
+    } else if (selectedFile) {
+      const url = URL.createObjectURL(selectedFile);
+      setPreviewImage(url);
+      setOriginalPreviewImage(url);
     }
   };
 
@@ -158,12 +198,14 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
 
     let imageUrl = '';
 
-    if (selectedFile) {
+    const fileToUpload = editedFile || selectedFile;
+
+    if (fileToUpload) {
       setUploading(true);
       setMessage({ type: 'success', text: 'Uploading image...' });
 
       const formData = new FormData();
-      formData.append('image', selectedFile);
+      formData.append('image', fileToUpload);
 
       try {
         const res = await fetch('/api/upload', {
@@ -195,7 +237,7 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
       }
     }
 
-    if (!selectedFile && editingItem && editingItem.image && !imageUrl) {
+    if (!fileToUpload && editingItem && editingItem.image && !imageUrl) {
       imageUrl = editingItem.image;
     }
 
@@ -269,6 +311,7 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
 
       setForm(EMPTY_FORM);
       setSelectedFile(null);
+      setEditedFile(null);
       setPreviewImage(null);
       if (e.target.elements.image) {
         e.target.elements.image.value = null;
@@ -382,12 +425,17 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
     uploading,
     selectedFile,
     previewImage,
+    showCropper,
+    originalPreviewImage,
     submitting,
     message,
     handleChange,
     handleStartEdit,
     handleCancelEdit,
     handleFileChange,
+    handleImageCropped,
+    handleDoneCrop,
+    handleRevertCrop,
     handleSubmit,
     handleDelete,
     handleToggleResolve,
