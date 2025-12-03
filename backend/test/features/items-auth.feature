@@ -1,4 +1,4 @@
-@wip @commit-9d052e6
+@commit-9d052e6
 Feature: Items API with authentication
   As an authenticated user
   I want item operations to be protected by JWT
@@ -63,6 +63,7 @@ Feature: Items API with authentication
     Given I set the "Authorization" header to "Bearer <valid_token_for_user@example.com>"
     And there is an existing item created by "user@example.com" with title "Editable Item"
     And I remember the ID of this item as "editableItemId"
+    And the user database also contains a user with email "other@example.com" and password "StrongPass2!"
     And I have obtained a valid JWT for "other@example.com" via "/api/auth/login"
     And I set the "Authorization" header to "Bearer <valid_token_for_other@example.com>"
     And I prepare an item update payload:
@@ -75,6 +76,7 @@ Feature: Items API with authentication
     Given I set the "Authorization" header to "Bearer <valid_token_for_user@example.com>"
     And there is an existing item created by "user@example.com" with title "Toggle Item" and status "open"
     And I remember the ID of this item as "toggleItemId"
+    And the user database also contains a user with email "other@example.com" and password "StrongPass2!"
     And I have obtained a valid JWT for "other@example.com" via "/api/auth/login"
     And I set the "Authorization" header to "Bearer <valid_token_for_other@example.com>"
     When I send a PUT request to "/api/items/{toggleItemId}/toggle-resolve"

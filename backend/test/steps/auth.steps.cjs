@@ -1,5 +1,32 @@
-const { Given, When, Then } = require('@cucumber/cucumber');
+const { Given, When, Then, AfterAll } = require('@cucumber/cucumber');
 const { expect } = require('chai');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
+require('dotenv').config();
+
+// The backend uses ES modules, so we load the User model via dynamic import
+// from this CommonJS step file, and ensure we have a MongoDB connection in
+// the Cucumber test process.
+let userModelPromise;
+
+async function getUserModel() {
+  if (!userModelPromise) {
+    userModelPromise = (async () => {
+      if (mongoose.connection.readyState === 0) {
+        const uri =
+          process.env.MONGODB_URI ||
+          'mongodb://127.0.0.1:27017/lostandfound-test';
+        await mongoose.connect(uri);
+      }
+
+      const mod = await import('../../src/models/userModel.js');
+      return mod.default || mod;
+    })();
+  }
+
+  return userModelPromise;
+}
 
 // Shared helpers
 function jsonField(path, obj) {
@@ -14,21 +41,45 @@ Given('the system is running', async function () {
   expect(res.status).to.be.within(200, 299);
 });
 
-// We do not manipulate the real database here; these steps assume
-// appropriate seed data exists in the test database.
-Given('the user database is empty', function () {
-  return 'pending';
+// For the auth features we manipulate the test database so that each scenario
+// can start from a known state using the real User model.
+Given('the user database is empty', async function () {
+  const User = await getUserModel();
+  await User.deleteMany({});
 });
 
 Given(
   'the user database contains a user with email {string} and password {string}',
-  function (email, password) {
-    return 'pending';
+  async function (email, password) {
+    // Seed a real user via the register endpoint so hashing/validation match production.
+    await this.request.post('/api/auth/register').send({ email, password });
+
+    const User = await getUserModel();
+    const user = await User.findOne({ email });
+    this.context = this.context || {};
+    this.context.user = user;
+    this.context.passwordByEmail = this.context.passwordByEmail || {};
+    this.context.passwordByEmail[email] = password;
+  }
+);
+
+Given(
+  'a user already exists in the database with email {string} and password {string}',
+  async function (email, password) {
+    // Alias that uses the same seeding strategy as the step above.
+    await this.request.post('/api/auth/register').send({ email, password });
+
+    const User = await getUserModel();
+    const user = await User.findOne({ email });
+    this.context = this.context || {};
+    this.context.user = user;
+    this.context.passwordByEmail = this.context.passwordByEmail || {};
+    this.context.passwordByEmail[email] = password;
   }
 );
 
 Given('the database is unavailable', function () {
-  return 'pending';
+  this.headers['x-force-db-unavailable'] = 'true';
 });
 
 // --- Auth: register ---
@@ -74,34 +125,59 @@ Then('the response JSON {string} should be {string}', function (field, value) {
   expect(actual).to.equal(value);
 });
 
+Then(
+  'the response status should be {int} or {int} depending on validation behavior',
+  function (status1, status2) {
+    expect(this.response, 'response not set').to.exist;
+    expect([status1, status2]).to.include(this.response.status);
+  }
+);
+
 Then('the response JSON should contain a non-empty {string}', function (field) {
   const actual = jsonField(field, this.response.body);
   expect(actual).to.exist;
   expect(String(actual)).to.have.length.greaterThan(0);
 });
 
-Then('the user {string} should exist in the database', function () {
-  return 'pending';
+Then('the user {string} should exist in the database', async function (email) {
+  const User = await getUserModel();
+  const user = await User.findOne({ email });
+
+  expect(user).to.exist;
+  expect(user.email).to.equal(email);
+  expect(user._id).to.exist;
 });
 
 Then(
   'the stored password for {string} should not equal {string}',
-  function () {
-    return 'pending';
+  async function (email, plainPassword) {
+    const User = await getUserModel();
+    const user = await User.findOne({ email });
+
+    expect(user).to.exist;
+    expect(user.password).to.not.equal(plainPassword);
   }
 );
 
 Then(
   'the stored password for {string} should be a bcrypt hash',
-  function () {
-    return 'pending';
+  async function (email) {
+    const User = await getUserModel();
+    const user = await User.findOne({ email });
+
+    const matches = await bcrypt.compare(this.body.password, user.password);
+    expect(matches).to.be.true;
   }
 );
 
 Then(
   'the user in the database should have email {string}',
-  function () {
-    return 'pending';
+  async function (expectedEmail) {
+    const User = await getUserModel();
+    const user = await User.findOne({ email: expectedEmail });
+    expect(user).to.exist;
+    expect(user.email).to.equal(expectedEmail);
+    expect(user._id).to.exist;
   }
 );
 
@@ -124,27 +200,74 @@ Given('I provide no login password', function () {
 });
 
 Then('the token should be a valid JWT signed with the server secret', function () {
-  return 'pending';
+  const token = this.response.body.token;
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  expect(decoded).to.be.an('object');
 });
 
 Then(
   'the token payload should contain the user\'s "_id" and "email" {string}',
-  function () {
-    return 'pending';
+  function (expectedEmail) {
+    const token = this.response.body.token;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    expect(decoded.userId).to.exist;
+    expect(decoded.email).to.equal(expectedEmail);
   }
 );
 
 Then('the token "exp" claim should be approximately 1 hour in the future', function () {
-  return 'pending';
+  const token = this.response.body.token;
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  const curTime = Math.floor(Date.now() / 1000);
+  const diff = decoded.exp - curTime;
+  expect(diff).to.be.within(3500, 3700);
 });
 
 // --- Auth token / headers ---
 
-Given('I have obtained a valid JWT for {string} via {string}', function () {
-  return 'pending';
+Given('I have obtained a valid JWT for {string} via {string}', async function (email, path) {
+  this.context = this.context || {};
+  this.context.passwordByEmail = this.context.passwordByEmail || {};
+
+  // Default to StrongPass1! if we don't have a specific password recorded for this email.
+  const password = this.context.passwordByEmail[email] || 'StrongPass1!';
+
+  const res = await this.request.post(path).send({ email, password });
+  expect(res.status).to.equal(200);
+  expect(res.body.token).to.exist;
+  this.context.lastToken = res.body.token;
+  this.context.tokensByEmail = this.context.tokensByEmail || {};
+  this.context.tokensByEmail[email] = res.body.token;
+});
+
+Given('I have a JWT for {string} that is already expired', function (email) {
+  const token = jwt.sign({ userId: 'dummy', email }, process.env.JWT_SECRET, {
+    expiresIn: -1,
+  });
+  this.context.expiredToken = token;
 });
 
 Given('I set the {string} header to {string}', function (name, value) {
+  const ctx = this.context || {};
+
+  if (value.includes('<valid_token>')) {
+    value = value.replace('<valid_token>', ctx.lastToken);
+  }
+
+  if (value.includes('<expired_token>')) {
+    value = value.replace('<expired_token>', ctx.expiredToken);
+  }
+
+  // Support placeholders like <valid_token_for_user@example.com>
+  if (value.includes('<valid_token_for_')) {
+    const tokensByEmail = ctx.tokensByEmail || {};
+    value = value.replace(/<valid_token_for_([^>]+)>/g, (match, emailKey) => {
+      const tokenForEmail = tokensByEmail[emailKey];
+      expect(tokenForEmail, `No stored token for email ${emailKey}`).to.exist;
+      return tokenForEmail;
+    });
+  }
+
   this.headers[name] = value;
 });
 
@@ -157,6 +280,19 @@ When('I send a GET request to {string}', async function (path) {
   this.response = res;
 });
 
-Then('the request should have {string} equal to {string}', function () {
-  return 'pending';
+Then('the request should have {string} equal to {string}', function (fieldPath, expected) {
+  // For now we handle "req.user.email" by checking response.body.user.email
+  if (fieldPath === 'req.user.email') {
+    const email = this.response.body && this.response.body.user && this.response.body.user.email;
+    expect(email).to.equal(expected);
+  } else {
+    const actual = jsonField(fieldPath, this.response.body);
+    expect(actual).to.equal(expected);
+  }
+});
+
+AfterAll(async function () {
+  if (mongoose.connection.readyState !== 0) {
+    await mongoose.disconnect();
+  }
 });

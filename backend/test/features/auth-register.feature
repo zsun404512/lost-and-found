@@ -1,4 +1,3 @@
-@wip
 Feature: User registration (signup)
   As a new user
   I want to register with my email and password
@@ -42,10 +41,10 @@ Feature: User registration (signup)
     And the response JSON "message" should be "Please provide email and password"
 
     Examples:
-      | email              | password       |
-      | ""                 | "StrongPass1!" |
-      | "user@example.com" | ""             |
-      | ""                 | ""             |
+      | email            | password      |
+      |                  | StrongPass1!  |
+      | user@example.com |               |
+      |                  |               |
 
   Scenario: Signup fails when user already exists
     Given a user already exists in the database with email "existing@example.com" and password "StrongPass1!"
@@ -59,8 +58,8 @@ Feature: User registration (signup)
     Given I provide an email "shortpass@example.com"
     And I provide a password "short7"
     When I send a POST request to "/api/auth/register" with this email and password
-    Then the response status should be 400 or 500 depending on validation behavior
-    And the response JSON "message" should indicate invalid user data or validation error
+    Then the response status should be 400
+    And the response JSON "message" should be "Password must be at least 8 characters long"
 
   Scenario: Signup succeeds with password exactly 8 characters
     Given I provide an email "minlength@example.com"
