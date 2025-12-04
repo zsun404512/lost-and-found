@@ -32,6 +32,20 @@ function isCoordinateWithinRange(name, num) {
   return !Number.isNaN(num) && num >= min && num <= max;
 }
 
+function getItemRequestConfig(editingItem) {
+  if (editingItem && editingItem._id) {
+    return {
+      url: `/api/items/${editingItem._id}`,
+      method: 'PUT',
+    };
+  }
+
+  return {
+    url: '/api/items',
+    method: 'POST',
+  };
+}
+
 export function useItemForm({ itemsState, message, setMessage, user, logout, navigate }) {
   const [form, setForm] = useState(EMPTY_FORM);
   const [editingItem, setEditingItem] = useState(null);
@@ -44,6 +58,14 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
   const [submitting, setSubmitting] = useState(false);
 
   const { setItems, setSearchQuery, setFilterType } = itemsState;
+
+  function resetImageState() {
+    setSelectedFile(null);
+    setEditedFile(null);
+    setPreviewImage(null);
+    setOriginalPreviewImage(null);
+    setShowCropper(false);
+  }
 
   function handleChange(e) {
     const { name, value } = e.target;
@@ -116,11 +138,7 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
   function handleCancelEdit() {
     setEditingItem(null);
     setForm(EMPTY_FORM);
-    setSelectedFile(null);
-    setEditedFile(null);
-    setPreviewImage(null);
-    setOriginalPreviewImage(null);
-    setShowCropper(false);
+    resetImageState();
     setMessage(null);
   }
 
@@ -138,11 +156,7 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
       // Reject if neither the MIME type nor the extension looks like a
       // supported image. This makes sure PDFs of any size never get uploaded.
       if (!isMimeOk && !isExtOk) {
-        setSelectedFile(null);
-        setEditedFile(null);
-        setPreviewImage(null);
-        setOriginalPreviewImage(null);
-        setShowCropper(false);
+        resetImageState();
         setMessage({ type: 'error', text: 'Images only! (jpg, jpeg, png)' });
         if (e.target && typeof e.target.value !== 'undefined') {
           e.target.value = null;
@@ -161,11 +175,7 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
       setOriginalPreviewImage(url);
       setShowCropper(true);
     } else {
-      setSelectedFile(null);
-      setEditedFile(null);
-      setPreviewImage(null);
-      setOriginalPreviewImage(null);
-      setShowCropper(false);
+      resetImageState();
     }
   };
 
@@ -192,6 +202,49 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
     }
   };
 
+  async function uploadImageIfNeeded(fileToUpload, token, editingItem) {
+    if (!fileToUpload) {
+      return '';
+    }
+
+    setUploading(true);
+    setMessage({ type: 'success', text: 'Uploading image...' });
+
+    const formData = new FormData();
+    formData.append('image', fileToUpload);
+
+    try {
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || 'Image upload failed');
+      }
+
+      setMessage({
+        type: 'success',
+        text: editingItem
+          ? 'Image uploaded! Saving changes...'
+          : 'Image uploaded! Submitting post...',
+      });
+
+      return data.imageId;
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message });
+      setSubmitting(false);
+      setUploading(false);
+      return null;
+    } finally {
+      setUploading(false);
+    }
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setMessage(null);
@@ -214,40 +267,11 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
     const fileToUpload = editedFile || selectedFile;
 
     if (fileToUpload) {
-      setUploading(true);
-      setMessage({ type: 'success', text: 'Uploading image...' });
-
-      const formData = new FormData();
-      formData.append('image', fileToUpload);
-
-      try {
-        const res = await fetch('/api/upload', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          body: formData,
-        });
-
-        const data = await res.json();
-        if (!res.ok) {
-          throw new Error(data.message || 'Image upload failed');
-        }
-        imageUrl = data.imageId;
-        setMessage({
-          type: 'success',
-          text: editingItem
-            ? 'Image uploaded! Saving changes...'
-            : 'Image uploaded! Submitting post...',
-        });
-      } catch (err) {
-        setMessage({ type: 'error', text: err.message });
-        setSubmitting(false);
-        setUploading(false);
+      const uploadedId = await uploadImageIfNeeded(fileToUpload, token, editingItem);
+      if (uploadedId === null) {
         return;
-      } finally {
-        setUploading(false);
       }
+      imageUrl = uploadedId;
     }
 
     if (!fileToUpload && editingItem && editingItem.image && !imageUrl) {
@@ -257,12 +281,7 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
     try {
       const postData = { ...form, image: imageUrl };
 
-      let url = '/api/items';
-      let method = 'POST';
-      if (editingItem && editingItem._id) {
-        url = `/api/items/${editingItem._id}`;
-        method = 'PUT';
-      }
+      const { url, method } = getItemRequestConfig(editingItem);
 
       const res = await fetch(url, {
         method,
