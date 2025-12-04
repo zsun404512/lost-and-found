@@ -187,8 +187,8 @@ npm run cucumber
 
 ```bash
 cd backend
-node --test test/*.test.jsx
-node --test test/individual_file.test.jsx # you can run it all or indivually
+node --test test/*.test.mjs
+node --test test/individual_file.test.mjs # you can run it all or indivually
 ```
 
 
