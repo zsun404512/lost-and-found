@@ -66,20 +66,30 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
     setOriginalPreviewImage(null);
     setShowCropper(false);
   }
+  
+  function validateCoordinateChange(name, value) {
+    if (!isCoordinatePatternValid(value)) {
+      return null;
+    }
+
+    if (!isIntermediateCoordinateValue(value)) {
+      const num = parseFloat(value);
+      if (!isCoordinateWithinRange(name, num)) {
+        return null;
+      }
+    }
+
+    return value;
+  }
 
   function handleChange(e) {
     const { name, value } = e.target;
 
     if (isLatOrLngField(name)) {
-      if (!isCoordinatePatternValid(value)) {
-        return;
-      }
+      const next = validateCoordinateChange(name, value);
 
-      if (!isIntermediateCoordinateValue(value)) {
-        const num = parseFloat(value);
-        if (!isCoordinateWithinRange(name, num)) {
-          return;
-        }
+      if (next == null) {
+        return;
       }
 
       setForm((prev) => ({ ...prev, [name]: value }));
