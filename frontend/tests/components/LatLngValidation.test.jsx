@@ -20,6 +20,16 @@ function renderLoggedInApp() {
   );
 }
 
+async function openItemFormDetails() {
+  const reportButton = await screen.findByRole('button', { name: /report an item/i });
+  fireEvent.click(reportButton);
+
+  const detailsButton = await screen.findByRole('button', {
+    name: /add more details \(optional\)/i,
+  });
+  fireEvent.click(detailsButton);
+}
+
 describe('Latitude/Longitude input validation', () => {
   beforeEach(() => {
     // Stub fetch used by Home's useEffect so tests don't hit the real API
@@ -39,6 +49,8 @@ describe('Latitude/Longitude input validation', () => {
   it('accepts valid latitude and rejects invalid characters', async () => {
     renderLoggedInApp();
 
+    await openItemFormDetails();
+
     const latInput = await screen.findByPlaceholderText(/Latitude \(optional\)/i);
 
     fireEvent.change(latInput, { target: { name: 'lat', value: '34.05' } });
@@ -52,6 +64,8 @@ describe('Latitude/Longitude input validation', () => {
   it('rejects out-of-range latitude values', async () => {
     renderLoggedInApp();
 
+    await openItemFormDetails();
+
     const latInput = await screen.findByPlaceholderText(/Latitude \(optional\)/i);
 
     fireEvent.change(latInput, { target: { name: 'lat', value: '89' } });
@@ -64,6 +78,8 @@ describe('Latitude/Longitude input validation', () => {
 
   it('allows intermediate negative/decimal latitude while typing', async () => {
     renderLoggedInApp();
+
+    await openItemFormDetails();
 
     const latInput = await screen.findByPlaceholderText(/Latitude \(optional\)/i);
 
@@ -79,6 +95,8 @@ describe('Latitude/Longitude input validation', () => {
 
   it('validates longitude range and format', async () => {
     renderLoggedInApp();
+
+    await openItemFormDetails();
 
     const lngInput = await screen.findByPlaceholderText(/Longitude \(optional\)/i);
 

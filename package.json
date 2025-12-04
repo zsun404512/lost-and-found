@@ -9,10 +9,12 @@
   "scripts": {
     "start": "npm --workspace backend start",
     "dev": "concurrently \"npm --workspace backend run dev\" \"npm --workspace frontend run dev\"",
-    "install-all": "npm install --workspaces"
+    "install-all": "npm install --workspaces",
+    "test:e2e": "playwright test"
   },
   "devDependencies": {
-    "concurrently": "^7.6.0"
+    "concurrently": "^7.6.0",
+    "@playwright/test": "^1.49.0"
   },
   "dependencies": {
     "jwt-decode": "^4.0.0"
