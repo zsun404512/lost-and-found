@@ -1,3 +1,5 @@
+// Main lost & found item form for creating or editing posts, with optional
+// extra details and image upload/cropping support.
 import { useState } from 'react';
 import ImageCropper from './ImageCropper.jsx';
 

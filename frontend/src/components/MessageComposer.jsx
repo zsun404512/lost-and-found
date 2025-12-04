@@ -1,3 +1,5 @@
+// Simple controlled message input that trims text and enforces a 500-character
+// limit before calling onSend.
 import { useState } from 'react';
 
 export default function MessageComposer({ onSend }) {

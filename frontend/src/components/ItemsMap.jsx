@@ -1,3 +1,5 @@
+// Interactive Leaflet map showing open items near UCLA, keeping bounds
+// and click-selected coordinates in sync with the parent.
 import { useEffect, useRef } from 'react';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';

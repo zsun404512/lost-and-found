@@ -1,3 +1,5 @@
+// Search and filtering toolbar for the items list/map, including history,
+// item/status/ownership filters, and map-scope controls.
 import { useState } from 'react';
 
 export default function ItemsToolbar({

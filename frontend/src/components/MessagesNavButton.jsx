@@ -1,3 +1,5 @@
+// Navigation button for the messaging section, hidden when logged out and
+// showing an unread badge when there are pending messages.
 export default function MessagesNavButton({ isLoggedIn, unreadCount, onClick }) {
   if (!isLoggedIn) {
     return null;
