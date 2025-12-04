@@ -46,6 +46,7 @@ function getItemRequestConfig(editingItem) {
   };
 }
 
+// item submission form hook
 export function useItemForm({ itemsState, message, setMessage, user, logout, navigate }) {
   const [form, setForm] = useState(EMPTY_FORM);
   const [editingItem, setEditingItem] = useState(null);
@@ -67,6 +68,7 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
     setShowCropper(false);
   }
   
+  // validate a single lat/lng change while still allowing partial input
   function validateCoordinateChange(name, value) {
     if (!isCoordinatePatternValid(value)) {
       return null;
@@ -255,6 +257,7 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
     }
   }
 
+  // main create/update submit handler for items
   async function handleSubmit(e) {
     e.preventDefault();
     setMessage(null);
@@ -328,9 +331,7 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
       setItems((prevItems) => {
         const enriched = {
           ...created,
-          // make sure the user field is a string id that matches the logged-in user
           user: created.user || (user && user.userId) || created.user,
-          // ensure userEmail is present so UI can show "Posted by you" immediately
           userEmail: created.userEmail || (user && user.email) || created.userEmail,
         };
 
@@ -368,6 +369,7 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
     }
   }
 
+  // delete an item after confirming with the user
   async function handleDelete(itemId) {
     const confirmedDelete = window.confirm('Are you sure you want to delete this item?');
     if (!confirmedDelete) {
@@ -406,6 +408,7 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
     }
   }
 
+  // flip an item's status between open and resolved
   async function handleToggleResolve(itemId) {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -454,6 +457,7 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
     }
   }
 
+  // open a messages thread with the owner of a given item
   const handleMessageOwner = (item) => {
     if (!user) return;
     navigate('/messages', {
