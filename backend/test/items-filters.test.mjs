@@ -223,3 +223,20 @@ test('GET /api/items applies search, status, and type filters', async () => {
   );
   assert.ok(items.every((it) => it.status === 'resolved' && it.type === 'found'));
 });
+
+// initial prompt for items-filters.test.mjs
+/*
+* suppose you are a high end software quality assurance engineer
+* I need a way to test my items filters
+* I want to make sure that my filters are working correctly
+* specifically, I want to test if my filters do the following (choose some scenarios or come up with your own):
+* 1) Default behavior: no explicit status -> should show open items only
+* 2) status = resolved -> only resolved items
+* 3) status = all -> both open and resolved items
+* 4) status = open & type = lost -> only open, lost items
+* 5) status = open & type = found -> only open, found items
+* 6) status = resolved & type = found -> only resolved, found items
+* take a look at the existing integration tests in @backend/test
+* please help me generate an integration test in the same style as the existing tests
+* I will run the tests afterwards and will let you know if anything fails
+*/
