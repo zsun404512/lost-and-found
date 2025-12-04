@@ -24,6 +24,7 @@ function Home() {
     const saved = localStorage.getItem('searchHistory');
     return saved ? JSON.parse(saved) : [];
   });
+  const [showForm, setShowForm] = useState(false);
 
   const updateHistory = (newTerm) => {
     let trimmed = newTerm.trim();
@@ -81,6 +82,10 @@ function Home() {
     uploading,
     previewImage,
     submitting,
+    showCropper,
+    handleImageCropped,
+    handleDoneCrop,
+    handleRevertCrop,
     handleChange,
     handleStartEdit,
     handleCancelEdit,
@@ -126,21 +131,50 @@ function Home() {
 
       {user ? (
         <>
-          <p className="lead">
-            Report a lost or found item using the form below.
-          </p>
-          <ItemForm
-            form={form}
-            editingItem={editingItem}
-            uploading={uploading}
-            previewImage={previewImage}
-            submitting={submitting}
-            message={message}
-            onChange={handleChange}
-            onSubmit={handleSubmit}
-            onCancelEdit={handleCancelEdit}
-            onFileChange={handleFileChange}
-          />
+          {!showForm ? (
+            <div className="home-hero">
+              <div className="home-hero-content">
+                <div className="home-hero-text">
+                  <h2 className="home-hero-title">Post a lost or found item</h2>
+                  <p className="home-hero-subtitle">
+                    Share a quick title and whether it was lost or found. You can add
+                    more details after starting your report.
+                  </p>
+                  <button
+                    type="button"
+                    className="btn home-hero-button"
+                    onClick={() => setShowForm(true)}
+                  >
+                    Report an item
+                  </button>
+                </div>
+
+                <div className="home-hero-illustration">
+                  <img
+                    src="/decorations/magnifying-glass.png"
+                    alt="Search for lost items"
+                  />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <ItemForm
+              form={form}
+              editingItem={editingItem}
+              uploading={uploading}
+              previewImage={previewImage}
+              submitting={submitting}
+              message={message}
+              onChange={handleChange}
+              onSubmit={handleSubmit}
+              onCancelEdit={handleCancelEdit}
+              onFileChange={handleFileChange}
+              showCropper={showCropper}
+              onImageCropped={handleImageCropped}
+              onDoneCrop={handleDoneCrop}
+              onRevertCrop={handleRevertCrop}
+            />
+          )}
         </>
       ) : (
         <p className="lead">
@@ -170,7 +204,20 @@ function Home() {
         onClearHistory={handleClearHistory}
         onSearchSubmit={handleSearchSubmit}
         onHistorySelect={handleHistorySelect}
+        mapFilterActive={mapFilterActive}
+  onMapFilterChange={setMapFilterActive}
       />
+
+      {!loading && (
+        <div className="items-count" style={{ marginBottom: '12px', color: '#666', fontSize: '0.9em' }}>
+          {(() => {
+            const count = viewMode === 'map' && mapFilterActive ? visibleItems.length : items.length;
+            if (count === 0) return 'No items found';
+            if (count === 1) return '1 item found';
+            return `${count} items found`;
+          })()}
+        </div>
+      )}
 
       {viewMode === 'map' && mapBounds && (
         <div className="map-filter-indicator" style={{ marginBottom: '8px' }}>
@@ -219,7 +266,10 @@ function Home() {
                 <ItemsList
                   items={mapFilterActive ? visibleItems : items}
                   user={user}
-                  onEdit={handleStartEdit}
+                  onEdit={(item) => {
+                    setShowForm(true);
+                    handleStartEdit(item);
+                  }}
                   onToggleResolve={handleToggleResolve}
                   onDelete={handleDelete}
                   onMessageOwner={handleMessageOwner}

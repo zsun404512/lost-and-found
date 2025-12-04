@@ -43,23 +43,20 @@ describe('Items view toggle', () => {
   it('starts in list view and can switch to map view', async () => {
     renderLoggedInApp();
 
-    const listButton = await screen.findByRole('button', { name: 'List view' });
-    const mapButton = await screen.findByRole('button', { name: 'Map view' });
+    const filtersToggle = await screen.findByRole('button', { name: /show filters/i });
+    fireEvent.click(filtersToggle);
 
-    // Initially list view should be active
-    expect(listButton.getAttribute('aria-pressed')).toBe('true');
-    expect(mapButton.getAttribute('aria-pressed')).toBe('false');
+    const mapCheckbox = await screen.findByLabelText(/show map view/i);
+
+    expect(mapCheckbox.checked).toBe(false);
     expect(screen.queryByTestId('items-map')).toBeNull();
 
-    // Switch to map view
-    fireEvent.click(mapButton);
+    fireEvent.click(mapCheckbox);
 
     await waitFor(() => {
-      expect(mapButton.getAttribute('aria-pressed')).toBe('true');
-      expect(listButton.getAttribute('aria-pressed')).toBe('false');
+      expect(mapCheckbox.checked).toBe(true);
     });
 
-    // Our mocked ItemsMap should now be rendered
     const map = await screen.findByTestId('items-map');
     expect(map).toBeTruthy();
   });
