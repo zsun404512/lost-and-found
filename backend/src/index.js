@@ -235,14 +235,30 @@ app.put('/api/items/:id', protect, async (req, res) => {
       return res.status(401).json({ message: 'User not authorized' });
     }
 
-    if (title !== undefined) item.title = title;
-    if (type !== undefined) item.type = type;
-    if (description !== undefined) item.description = description;
-    if (location !== undefined) item.location = location;
-    if (date !== undefined) item.date = date;
-    if (image !== undefined) item.image = image;
-    if (lat !== undefined) item.lat = lat;
-    if (lng !== undefined) item.lng = lng;
+    if (title !== undefined) {
+      item.title = title;
+    }
+    if (type !== undefined) {
+      item.type = type;
+    }
+    if (description !== undefined) {
+      item.description = description;
+    }
+    if (location !== undefined) {
+      item.location = location;
+    }
+    if (date !== undefined) {
+      item.date = date;
+    }
+    if (image !== undefined) {
+      item.image = image;
+    }
+    if (lat !== undefined) {
+      item.lat = lat;
+    }
+    if (lng !== undefined) {
+      item.lng = lng;
+    }
 
     const updatedItem = await item.save();
     res.status(200).json(updatedItem);
