@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import ConversationList from '../components/ConversationList.jsx';
 import MessageComposer from '../components/MessageComposer.jsx';
 
+// messages inbox page for (logged in users) toread/send messages
 export default function MessagesPage() {
   const { user } = useAuth();
   const location = useLocation();
@@ -20,6 +21,7 @@ export default function MessagesPage() {
   const token =
     typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
+  // Load the logged-in user's conversations from the backend
   useEffect(() => {
     if (!currentUserId || !token) {
       setLoadingConversations(false);
@@ -66,6 +68,7 @@ export default function MessagesPage() {
     };
   }, [currentUserId, token]);
 
+  // If we arrive with a participantId in route state, start/select that conversation once
   useEffect(() => {
     if (!currentUserId || !token) return;
 
@@ -115,6 +118,7 @@ export default function MessagesPage() {
     };
   }, [currentUserId, token, location.state, selectedConversationId]);
 
+  // Fetch messages for a conversation and mark them as read
   const loadMessagesForConversation = async (conversationId) => {
     if (!token || !currentUserId || !conversationId) return;
 
@@ -154,11 +158,13 @@ export default function MessagesPage() {
     }
   };
 
+  // When the user clicks a conversation in the sidebar, load its messages
   const handleSelectConversation = async (conversationId) => {
     setSelectedConversationId(conversationId);
     await loadMessagesForConversation(conversationId);
   };
 
+  // Send a new message in the active conversation and append it locally
   const handleSendMessage = async (body) => {
     if (!token || !currentUserId || !selectedConversationId) return;
 
@@ -186,6 +192,7 @@ export default function MessagesPage() {
     }
   };
 
+  // Guard: if somehow not logged in, show a redirect message instead of the inbox
   if (!user) {
     return (
       <div className="app messages-page">
