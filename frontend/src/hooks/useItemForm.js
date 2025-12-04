@@ -1,3 +1,5 @@
+// Central hook for the lost & found item form: manages form state, coordinate
+// validation, image upload/cropping, and create/update/delete/resolve actions.
 import { useState } from 'react';
 import { getItemImageUrl } from '../utils/items';
 

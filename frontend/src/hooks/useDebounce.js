@@ -1,17 +1,17 @@
+// Small hook that returns a debounced version of a value, updating only
+// after the given delay has passed without further changes.
 import { useState, useEffect } from 'react';
 
-// custom hook takes value and delay
 export function useDebounce(value, delay) {
-    // state to hold debounce value
-    const [debouncedValue, setDebouncedValue] = useState(value);
 
+    const [debouncedValue, setDebouncedValue] = useState(value);
+    
+    // update debounced value after delay, clear timeout if value changes
     useEffect(() => {
-        // timer to update debounced value after delay
         const handler = setTimeout(() => {
             setDebouncedValue(value);
         }, delay);
 
-        // if value changes, previous timer is cleared before starting a new one
         return () => {
             clearTimeout(handler);
         };
