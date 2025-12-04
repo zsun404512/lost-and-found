@@ -69,6 +69,19 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
     setMessage(null);
   }
 
+  function handleSetCoordinatesFromMap(lat, lng) {
+    if (!isCoordinateWithinRange('lat', lat) || !isCoordinateWithinRange('lng', lng)) {
+      return;
+    }
+
+    setForm((prev) => ({
+      ...prev,
+      lat: String(lat),
+      lng: String(lng),
+    }));
+    setMessage(null);
+  }
+
   function handleStartEdit(item) {
     setEditingItem(item);
     setForm({
@@ -430,6 +443,7 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
     submitting,
     message,
     handleChange,
+    handleSetCoordinatesFromMap,
     handleStartEdit,
     handleCancelEdit,
     handleFileChange,

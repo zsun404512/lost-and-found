@@ -88,6 +88,7 @@ function Home() {
     handleDoneCrop,
     handleRevertCrop,
     handleChange,
+    handleSetCoordinatesFromMap,
     handleStartEdit,
     handleCancelEdit,
     handleFileChange,
@@ -225,6 +226,7 @@ function Home() {
                 onBoundsChange={(bounds) => {
                   setMapBounds(bounds);
                 }}
+                onMapClick={showForm ? handleSetCoordinatesFromMap : undefined}
               />
 
               {ownedItems.length === 0 ? (

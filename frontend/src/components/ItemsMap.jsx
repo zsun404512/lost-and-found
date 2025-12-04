@@ -13,7 +13,7 @@ L.Icon.Default.mergeOptions({
 const UCLA_CENTER = [34.0703, -118.4449];
 const UCLA_ZOOM = 16;
 
-export default function ItemsMap({ items, onBoundsChange, user }) {
+export default function ItemsMap({ items, onBoundsChange, user, onMapClick }) {
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const markersLayerRef = useRef(null);
@@ -126,6 +126,28 @@ export default function ItemsMap({ items, onBoundsChange, user }) {
       map.fitBounds(bounds, { padding: [40, 40] });
     }
   }, [items]);
+
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map || typeof onMapClick !== 'function') {
+      return;
+    }
+
+    const handler = (e) => {
+      const { lat, lng } = e && e.latlng ? e.latlng : {};
+      if (typeof lat === 'number' && typeof lng === 'number') {
+        onMapClick(lat, lng);
+      }
+    };
+
+    map.on('click', handler);
+
+    return () => {
+      if (typeof map.off === 'function') {
+        map.off('click', handler);
+      }
+    };
+  }, [onMapClick]);
 
   return <div className="map-container" ref={mapRef} />;
 }

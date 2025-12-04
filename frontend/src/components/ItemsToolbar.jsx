@@ -84,6 +84,18 @@ export default function ItemsToolbar({
             </div>
           </div>
         )}
+        <div className="view-toggle">
+          <label className="filters-checkbox">
+            <input
+              type="checkbox"
+              checked={viewMode === 'map'}
+              onChange={(e) =>
+                onViewModeChange(e.target.checked ? 'map' : 'list')
+              }
+            />
+            <span>Show map view</span>
+          </label>
+        </div>
         <div className="filters-bar">
           <button
             type="button"
@@ -206,19 +218,8 @@ export default function ItemsToolbar({
 
             {/* View + map radius */}
             <div className="filters-group">
-              <div className="filters-label">View</div>
+              <div className="filters-label">Map filter</div>
               <div className="filters-options-column">
-                <label className="filters-checkbox">
-                  <input
-                    type="checkbox"
-                    checked={viewMode === 'map'}
-                    onChange={(e) =>
-                      onViewModeChange(e.target.checked ? 'map' : 'list')
-                    }
-                  />
-                  <span>Show map view</span>
-                </label>
-
                 <label className="filters-checkbox filters-checkbox-nested">
                   <input
                     type="checkbox"

@@ -112,4 +112,25 @@ describe('ItemsMap', () => {
     const positions = L.__markers.map((m) => m.position);
     expect(positions).toEqual([[34, -118]]);
   });
+
+  it('calls onMapClick with coordinates when the map is clicked', async () => {
+    const onMapClick = vi.fn();
+
+    render(
+      <ItemsMap
+        items={[]}
+        onBoundsChange={() => {}}
+        onMapClick={onMapClick}
+        user={null}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(typeof L.__mapOnHandlers.click).toBe('function');
+    });
+
+    L.__mapOnHandlers.click({ latlng: { lat: 34.5, lng: -118.5 } });
+
+    expect(onMapClick).toHaveBeenCalledWith(34.5, -118.5);
+  });
 });
