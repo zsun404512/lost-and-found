@@ -104,3 +104,14 @@ export const loginUser = async (req, res) => {
     res.status(500).json({ message: 'Server Error' });
   }
 };
+
+/* prompt for the initial commit when authController.js is first created
+* hello gemini
+* suppose you are an expert backend developer guiding a junior developer
+* the first thing to do for this project is to create an authentication system
+* we need to have a way to authenticate users so that they can register
+* and sign up on the website
+* this is my first software project, and I'm not sure where to start
+* can you help me get started? it would be great if you could help me start generating this file
+* I will fix it up afterwards once I'm familiarized with the functionalities of the code that you write
+*/

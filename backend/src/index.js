@@ -310,3 +310,15 @@ app.get('*', (req, res) => {
 app.listen(PORT, () => {
   console.log(`Backend listening on http://localhost:${PORT}`);
 });
+
+// prompt for the initial commit
+/*
+* suppose you are an expert backend developer guiding a junior developer
+* you are familiar with express.js and api route creation
+* I need a way to set up my backend environment and act as the control center for my backend
+* my friend has already set up @index.js. make edits within that file
+* I'm currently getting some errors in my imports. my modules are not found when interpreted
+* can you please fix the code that I have written?
+* please implement the functioning imports so that this file can run
+* I believe the code is fully functional otherwise, so do not change any of the actual logic
+*/

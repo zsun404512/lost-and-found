@@ -31,3 +31,16 @@ const protect = (req, res, next) => {
 };
 
 export { protect };
+
+// prompt for initial commit
+/*
+* suppose you are an expert backend developer guiding a junior developer
+* I need a way to protect my api routes
+* I want to make sure that only authenticated users can access them
+* however, I'm not sure how to do this
+* please take a look at @index.js and @authController.js for the current implementation
+* can you help guide me to do this? don't write actual code, just guide me step by step
+* as I'd like to learn and type the code myself
+* include detailed comments as well so I can understand what's going on
+* I will refactor the code after you guide me through the process
+*/
