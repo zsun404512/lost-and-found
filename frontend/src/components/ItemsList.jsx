@@ -8,6 +8,7 @@ export default function ItemsList({
   onToggleResolve,
   onDelete,
   onMessageOwner,
+  onEditSecondClick = () => {},
 }) {
   const [actionsOpenForId, setActionsOpenForId] = useState(null);
 
@@ -87,6 +88,9 @@ export default function ItemsList({
                       type="button"
                       className="btn-edit"
                       onClick={() => {
+                        if (actionsOpen) {
+                          onEditSecondClick(item);
+                        }
                         onEdit(item);
                         setActionsOpenForId(item._id || item.id);
                       }}
