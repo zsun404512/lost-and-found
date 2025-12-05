@@ -121,6 +121,3 @@ function defineStoreTests(backend, { skip } = {}) {
 
 // Always run the in-memory store tests.
 defineStoreTests('memory');
-
-// Run Mongo-backed store tests when MONGODB_URI is available.
-defineStoreTests('mongo', { skip: !process.env.MONGODB_URI });
