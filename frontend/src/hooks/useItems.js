@@ -1,3 +1,5 @@
+// Hook for loading and managing the items collection, with debounced search
+// and type/status/view filter state wired into the items API.
 import { useState, useEffect } from 'react';
 import { useDebounce } from './useDebounce';
 

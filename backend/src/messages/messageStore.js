@@ -1,13 +1,13 @@
 import Conversation from '../models/conversationModel.js';
 import Message from '../models/messageModel.js';
 
+// in memory storage for messages
 function createMemoryStore() {
   let nextId = 1;
   const conversations = [];
   const messages = [];
 
   function makeId() {
-    // Return a 24-character zero-padded numeric string to resemble an ObjectId.
     const id = String(nextId++);
     return id.padStart(24, '0');
   }
@@ -116,6 +116,7 @@ function createMemoryStore() {
   };
 }
 
+// MongoDB storage for messages
 function createMongoStore() {
   function normalizeConversation(conv) {
     if (!conv) return null;
@@ -200,6 +201,7 @@ function createMongoStore() {
   };
 }
 
+// choose the backend to use
 export function createMessageStore({ backend } = {}) {
   const mode = backend || (process.env.MONGODB_URI ? 'mongo' : 'memory');
 

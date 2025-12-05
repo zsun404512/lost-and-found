@@ -43,9 +43,6 @@ describe('Items view toggle', () => {
   it('starts in list view and can switch to map view', async () => {
     renderLoggedInApp();
 
-    const filtersToggle = await screen.findByRole('button', { name: /show filters/i });
-    fireEvent.click(filtersToggle);
-
     const mapCheckbox = await screen.findByLabelText(/show map view/i);
 
     expect(mapCheckbox.checked).toBe(false);

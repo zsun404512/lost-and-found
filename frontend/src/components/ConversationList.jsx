@@ -1,3 +1,5 @@
+// Renders a selectable list of conversations, normalizing IDs and 
+// deriving a human-friendly label for the other participant in each thread.
 export default function ConversationList({
   conversations,
   currentUserId,
@@ -37,6 +39,7 @@ export default function ConversationList({
         const derivedOtherId =
           otherIdFromField || participants.find((pid) => pid !== currentIdStr) || null;
 
+        // use explicit email if available, otherwise use derived ID if it's not the current user
         const label =
           explicitOtherEmail ||
           (derivedOtherId && derivedOtherId !== currentIdStr

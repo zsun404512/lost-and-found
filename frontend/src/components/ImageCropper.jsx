@@ -1,3 +1,5 @@
+// Modal image cropper that wraps react-easy-crop and uses an offscreen canvas
+// to output a cropped JPEG File/preview back to the parent.
 import { useState, useCallback } from 'react';
 import Cropper from 'react-easy-crop';
 

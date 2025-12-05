@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 
+// schema requires data, content type, and owner
 const imageSchema = new mongoose.Schema(
   {
     data: {

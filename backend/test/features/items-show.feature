@@ -16,3 +16,10 @@ Feature: Fetch a single item by id
   Scenario: Fetching a non-existent item returns 404
     When I send a GET request to "/api/items/000000000000000000000000"
     Then the response status should be 404
+
+# prompt
+# the tests are working well
+# I need a few more tests to validate the expected behavior of files in @backend/src
+# make sure that the tests are in the same format as @items-filter.feature
+# the tests that you should write now should correspond with showing items 
+# make sure to try to fetch both items that are existing and non existent

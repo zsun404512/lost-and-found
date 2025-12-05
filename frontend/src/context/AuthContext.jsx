@@ -11,7 +11,7 @@ const isTokenExpired = (token) => {
     const currentTime = Date.now() / 1000; // Convert to seconds
     return decoded.exp < currentTime;
   } catch (err) {
-    return true; // If we can't decode, consider it expired
+    return true; 
   }
 };
 
@@ -24,11 +24,10 @@ export function AuthProvider({ children }) {
     // console.log('Token expired, clearing session');
     localStorage.removeItem('token');
     setUser(null);
-    // Redirect will be handled by components that check user state
     window.location.href = '/login';
   };
 
-  // Check token expiration periodically
+  // Check token expiration periodically (every minute)
   useEffect(() => {
     const checkTokenExpiration = () => {
       const token = localStorage.getItem('token');
@@ -37,10 +36,8 @@ export function AuthProvider({ children }) {
       }
     };
 
-    // Check immediately
     checkTokenExpiration();
 
-    // Check every minute
     const interval = setInterval(checkTokenExpiration, 60000);
 
     return () => clearInterval(interval);
@@ -51,7 +48,6 @@ export function AuthProvider({ children }) {
     const token = localStorage.getItem('token');
     if (token) {
       try {
-        // Check if token is expired
         if (isTokenExpired(token)) {
           handleExpiredToken();
           return;
@@ -98,11 +94,8 @@ export function AuthProvider({ children }) {
   // logout resets user and clears token
   const logout = () => {
     // console.log('Logging out');
-    // 1. Clear the token from localStorage
     localStorage.removeItem('token');
-    // 2. Clear the user from state
     setUser(null);
-    // 3. Redirect to login
     window.location.href = '/login';
   };
 
@@ -110,7 +103,6 @@ export function AuthProvider({ children }) {
   const authenticatedFetch = async (url, options = {}) => {
     const token = localStorage.getItem('token');
     
-    // Check if token is expired before making the request
     if (token && isTokenExpired(token)) {
       handleExpiredToken();
       throw new Error('Session expired');

@@ -174,4 +174,45 @@ describe('Items filters', () => {
     const message = await screen.findByText('No items match your search.');
     expect(message).toBeTruthy();
   });
+
+  it('filters to only items created by the current user when "My posts only" is selected', async () => {
+    const items = [
+      {
+        _id: '1',
+        user: 'test-user',
+        title: 'My owned item',
+        status: 'open',
+        type: 'lost',
+      },
+      {
+        _id: '2',
+        user: 'someone-else',
+        title: 'Not my item',
+        status: 'open',
+        type: 'lost',
+      },
+    ];
+
+    global.fetch = vi.fn(() =>
+      Promise.resolve({
+        json: () => Promise.resolve(items),
+      }),
+    );
+
+    renderLoggedInApp();
+
+    // Both items should be visible initially
+    await screen.findByText('My owned item');
+    await screen.findByText('Not my item');
+
+    await openFiltersPanel();
+
+    const myPostsButton = await screen.findByRole('button', { name: /my posts only/i });
+    fireEvent.click(myPostsButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('My owned item')).toBeTruthy();
+      expect(screen.queryByText('Not my item')).toBeNull();
+    });
+  });
 });

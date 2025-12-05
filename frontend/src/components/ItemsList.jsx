@@ -1,3 +1,5 @@
+// List view for lost & found items, showing metadata, timestamps, and
+// owner-only actions like edit, resolve, and delete.
 import { useState } from 'react';
 import { getItemImageUrl, formatDateTime } from '../utils/items';
 

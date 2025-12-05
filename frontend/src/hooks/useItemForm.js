@@ -1,3 +1,5 @@
+// Central hook for the lost & found item form: manages form state, coordinate
+// validation, image upload/cropping, and create/update/delete/resolve actions.
 import { useState } from 'react';
 import { getItemImageUrl } from '../utils/items';
 
@@ -32,6 +34,21 @@ function isCoordinateWithinRange(name, num) {
   return !Number.isNaN(num) && num >= min && num <= max;
 }
 
+function getItemRequestConfig(editingItem) {
+  if (editingItem && editingItem._id) {
+    return {
+      url: `/api/items/${editingItem._id}`,
+      method: 'PUT',
+    };
+  }
+
+  return {
+    url: '/api/items',
+    method: 'POST',
+  };
+}
+
+// item submission form hook
 export function useItemForm({ itemsState, message, setMessage, user, logout, navigate }) {
   const [form, setForm] = useState(EMPTY_FORM);
   const [editingItem, setEditingItem] = useState(null);
@@ -45,19 +62,38 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
 
   const { setItems, setSearchQuery, setFilterType } = itemsState;
 
+  function resetImageState() {
+    setSelectedFile(null);
+    setEditedFile(null);
+    setPreviewImage(null);
+    setOriginalPreviewImage(null);
+    setShowCropper(false);
+  }
+  
+  // validate a single lat/lng change while still allowing partial input
+  function validateCoordinateChange(name, value) {
+    if (!isCoordinatePatternValid(value)) {
+      return null;
+    }
+
+    if (!isIntermediateCoordinateValue(value)) {
+      const num = parseFloat(value);
+      if (!isCoordinateWithinRange(name, num)) {
+        return null;
+      }
+    }
+
+    return value;
+  }
+
   function handleChange(e) {
     const { name, value } = e.target;
 
     if (isLatOrLngField(name)) {
-      if (!isCoordinatePatternValid(value)) {
-        return;
-      }
+      const next = validateCoordinateChange(name, value);
 
-      if (!isIntermediateCoordinateValue(value)) {
-        const num = parseFloat(value);
-        if (!isCoordinateWithinRange(name, num)) {
-          return;
-        }
+      if (next == null) {
+        return;
       }
 
       setForm((prev) => ({ ...prev, [name]: value }));
@@ -66,6 +102,19 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
     }
 
     setForm((prev) => ({ ...prev, [name]: value }));
+    setMessage(null);
+  }
+
+  function handleSetCoordinatesFromMap(lat, lng) {
+    if (!isCoordinateWithinRange('lat', lat) || !isCoordinateWithinRange('lng', lng)) {
+      return;
+    }
+
+    setForm((prev) => ({
+      ...prev,
+      lat: String(lat),
+      lng: String(lng),
+    }));
     setMessage(null);
   }
 
@@ -103,11 +152,7 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
   function handleCancelEdit() {
     setEditingItem(null);
     setForm(EMPTY_FORM);
-    setSelectedFile(null);
-    setEditedFile(null);
-    setPreviewImage(null);
-    setOriginalPreviewImage(null);
-    setShowCropper(false);
+    resetImageState();
     setMessage(null);
   }
 
@@ -125,11 +170,7 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
       // Reject if neither the MIME type nor the extension looks like a
       // supported image. This makes sure PDFs of any size never get uploaded.
       if (!isMimeOk && !isExtOk) {
-        setSelectedFile(null);
-        setEditedFile(null);
-        setPreviewImage(null);
-        setOriginalPreviewImage(null);
-        setShowCropper(false);
+        resetImageState();
         setMessage({ type: 'error', text: 'Images only! (jpg, jpeg, png)' });
         if (e.target && typeof e.target.value !== 'undefined') {
           e.target.value = null;
@@ -148,11 +189,7 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
       setOriginalPreviewImage(url);
       setShowCropper(true);
     } else {
-      setSelectedFile(null);
-      setEditedFile(null);
-      setPreviewImage(null);
-      setOriginalPreviewImage(null);
-      setShowCropper(false);
+      resetImageState();
     }
   };
 
@@ -179,6 +216,50 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
     }
   };
 
+  async function uploadImageIfNeeded(fileToUpload, token, editingItem) {
+    if (!fileToUpload) {
+      return '';
+    }
+
+    setUploading(true);
+    setMessage({ type: 'success', text: 'Uploading image...' });
+
+    const formData = new FormData();
+    formData.append('image', fileToUpload);
+
+    try {
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || 'Image upload failed');
+      }
+
+      setMessage({
+        type: 'success',
+        text: editingItem
+          ? 'Image uploaded! Saving changes...'
+          : 'Image uploaded! Submitting post...',
+      });
+
+      return data.imageId;
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message });
+      setSubmitting(false);
+      setUploading(false);
+      return null;
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  // main create/update submit handler for items
   async function handleSubmit(e) {
     e.preventDefault();
     setMessage(null);
@@ -201,40 +282,11 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
     const fileToUpload = editedFile || selectedFile;
 
     if (fileToUpload) {
-      setUploading(true);
-      setMessage({ type: 'success', text: 'Uploading image...' });
-
-      const formData = new FormData();
-      formData.append('image', fileToUpload);
-
-      try {
-        const res = await fetch('/api/upload', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          body: formData,
-        });
-
-        const data = await res.json();
-        if (!res.ok) {
-          throw new Error(data.message || 'Image upload failed');
-        }
-        imageUrl = data.imageId;
-        setMessage({
-          type: 'success',
-          text: editingItem
-            ? 'Image uploaded! Saving changes...'
-            : 'Image uploaded! Submitting post...',
-        });
-      } catch (err) {
-        setMessage({ type: 'error', text: err.message });
-        setSubmitting(false);
-        setUploading(false);
+      const uploadedId = await uploadImageIfNeeded(fileToUpload, token, editingItem);
+      if (uploadedId === null) {
         return;
-      } finally {
-        setUploading(false);
       }
+      imageUrl = uploadedId;
     }
 
     if (!fileToUpload && editingItem && editingItem.image && !imageUrl) {
@@ -244,12 +296,7 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
     try {
       const postData = { ...form, image: imageUrl };
 
-      let url = '/api/items';
-      let method = 'POST';
-      if (editingItem && editingItem._id) {
-        url = `/api/items/${editingItem._id}`;
-        method = 'PUT';
-      }
+      const { url, method } = getItemRequestConfig(editingItem);
 
       const res = await fetch(url, {
         method,
@@ -286,9 +333,7 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
       setItems((prevItems) => {
         const enriched = {
           ...created,
-          // make sure the user field is a string id that matches the logged-in user
           user: created.user || (user && user.userId) || created.user,
-          // ensure userEmail is present so UI can show "Posted by you" immediately
           userEmail: created.userEmail || (user && user.email) || created.userEmail,
         };
 
@@ -326,6 +371,7 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
     }
   }
 
+  // delete an item after confirming with the user
   async function handleDelete(itemId) {
     const confirmedDelete = window.confirm('Are you sure you want to delete this item?');
     if (!confirmedDelete) {
@@ -364,6 +410,7 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
     }
   }
 
+  // flip an item's status between open and resolved
   async function handleToggleResolve(itemId) {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -412,6 +459,7 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
     }
   }
 
+  // open a messages thread with the owner of a given item
   const handleMessageOwner = (item) => {
     if (!user) return;
     navigate('/messages', {
@@ -430,6 +478,7 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
     submitting,
     message,
     handleChange,
+    handleSetCoordinatesFromMap,
     handleStartEdit,
     handleCancelEdit,
     handleFileChange,

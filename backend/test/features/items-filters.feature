@@ -30,4 +30,3 @@ Feature: Items filters on /api/items
     When I send a GET request to "/api/items"
     Then the response status should be 200
     And every item in the response JSON should have status "open"
-

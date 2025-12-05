@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-// This is the new, updated schema
+// schema utilizes type, title, description, location, date, lat, lng, user, status, and image
 const itemSchema = new mongoose.Schema({
   type: { type: String, enum: ['lost', 'found'], default: 'lost' },
   title: String,
@@ -10,9 +10,9 @@ const itemSchema = new mongoose.Schema({
   lat: Number,
   lng: Number,
   user: {
-    type: mongoose.Schema.Types.ObjectId, // This links to a User's ID
+    type: mongoose.Schema.Types.ObjectId,
     required: true,
-    ref: 'User' // This tells Mongoose the 'user' field refers to the 'User' model
+    ref: 'User'
   },
   status: {
     type: String,

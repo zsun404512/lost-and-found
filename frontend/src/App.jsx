@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { BrowserRouter, Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
-
 import LoginPage from './pages/LoginPage';
 import SignUpPage from './pages/SignUpPage';
 import MessagesPage from './pages/MessagesPage.jsx';
@@ -12,11 +11,11 @@ import ItemsMap from './components/ItemsMap.jsx';
 import { useAuth } from './context/AuthContext';
 import { useItems } from './hooks/useItems';
 import { useItemForm } from './hooks/useItemForm';
+import { filterItemsByBounds } from './utils/items';
 
 function Home() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-
   const [message, setMessage] = useState(null);
   const [mapBounds, setMapBounds] = useState(null);
   const [mapFilterActive, setMapFilterActive] = useState(false);
@@ -25,6 +24,7 @@ function Home() {
     return saved ? JSON.parse(saved) : [];
   });
   const [showForm, setShowForm] = useState(false);
+  const [ownOnly, setOwnOnly] = useState(false);
 
   const updateHistory = (newTerm) => {
     let trimmed = newTerm.trim();
@@ -62,6 +62,7 @@ function Home() {
     localStorage.removeItem('searchHistory');
   };
 
+  // const variables and functions
   const itemsState = useItems({ setMessage });
   const {
     items,
@@ -75,7 +76,7 @@ function Home() {
     statusFilter,
     setStatusFilter,
   } = itemsState;
-
+  const ownedItems = ownOnly && user ? items.filter((it) => it.user === user.userId) : items;
   const {
     form,
     editingItem,
@@ -87,6 +88,7 @@ function Home() {
     handleDoneCrop,
     handleRevertCrop,
     handleChange,
+    handleSetCoordinatesFromMap,
     handleStartEdit,
     handleCancelEdit,
     handleFileChange,
@@ -102,33 +104,12 @@ function Home() {
     logout,
     navigate,
   });
-
-  const visibleItems = mapFilterActive && mapBounds
-    ? items.filter((it) => {
-        const rawLat = it.lat;
-        const rawLng = it.lng;
-
-        const hasLat = rawLat !== undefined && rawLat !== null && rawLat !== '';
-        const hasLng = rawLng !== undefined && rawLng !== null && rawLng !== '';
-        if (!hasLat || !hasLng) return false;
-
-        const lat = typeof rawLat === 'number' ? rawLat : Number(rawLat);
-        const lng = typeof rawLng === 'number' ? rawLng : Number(rawLng);
-        if (Number.isNaN(lat) || Number.isNaN(lng)) return false;
-
-        return (
-          lat >= mapBounds.south &&
-          lat <= mapBounds.north &&
-          lng >= mapBounds.west &&
-          lng <= mapBounds.east
-        );
-      })
-    : items;
+  // show filter items if in bounds
+  const visibleItems = mapFilterActive && mapBounds ? filterItemsByBounds(items, mapBounds) : items;
 
   return (
     <div className="app">
       <h1 className="title">UCLostAndfound</h1>
-
       {user ? (
         <>
           {!showForm ? (
@@ -148,7 +129,6 @@ function Home() {
                     Report an item
                   </button>
                 </div>
-
                 <div className="home-hero-illustration">
                   <img
                     src="/decorations/magnifying-glass.png"
@@ -188,9 +168,7 @@ function Home() {
           to post a lost or found item.
         </p>
       )}
-
       <h2 className="subtitle">Recent Items</h2>
-
       <ItemsToolbar
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
@@ -205,20 +183,21 @@ function Home() {
         onSearchSubmit={handleSearchSubmit}
         onHistorySelect={handleHistorySelect}
         mapFilterActive={mapFilterActive}
-  onMapFilterChange={setMapFilterActive}
+        onMapFilterChange={setMapFilterActive}
+        ownOnly={ownOnly}
+        onOwnOnlyChange={setOwnOnly}
       />
-
       {!loading && (
         <div className="items-count" style={{ marginBottom: '12px', color: '#666', fontSize: '0.9em' }}>
           {(() => {
-            const count = viewMode === 'map' && mapFilterActive ? visibleItems.length : items.length;
+            const countSource = viewMode === 'map' && mapFilterActive ? visibleItems : ownedItems;
+            const count = countSource.length;
             if (count === 0) return 'No items found';
             if (count === 1) return '1 item found';
             return `${count} items found`;
           })()}
         </div>
       )}
-
       {viewMode === 'map' && mapBounds && (
         <div className="map-filter-indicator" style={{ marginBottom: '8px' }}>
           <button
@@ -235,7 +214,6 @@ function Home() {
           )}
         </div>
       )}
-
       {loading ? (
         <p className="loading">Loading...</p>
       ) : (
@@ -243,14 +221,15 @@ function Home() {
           {viewMode === 'map' ? (
             <>
               <ItemsMap
-                items={items}
+                items={ownedItems}
                 user={user}
                 onBoundsChange={(bounds) => {
                   setMapBounds(bounds);
                 }}
+                onMapClick={showForm ? handleSetCoordinatesFromMap : undefined}
               />
 
-              {items.length === 0 ? (
+              {ownedItems.length === 0 ? (
                 <p className="empty">
                   {searchQuery || filterType !== 'all'
                     ? 'No items match your search.'
@@ -264,7 +243,7 @@ function Home() {
                 </p>
               ) : (
                 <ItemsList
-                  items={mapFilterActive ? visibleItems : items}
+                  items={mapFilterActive ? visibleItems : ownedItems}
                   user={user}
                   onEdit={(item) => {
                     setShowForm(true);
@@ -278,7 +257,7 @@ function Home() {
             </>
           ) : (
             <>
-              {items.length === 0 ? (
+              {ownedItems.length === 0 ? (
                 <p className="empty">
                   {searchQuery || filterType !== 'all'
                     ? 'No items match your search.'
@@ -288,7 +267,7 @@ function Home() {
                 </p>
               ) : (
                 <ItemsList
-                  items={items}
+                  items={ownedItems}
                   user={user}
                   onEdit={handleStartEdit}
                   onToggleResolve={handleToggleResolve}
@@ -305,18 +284,14 @@ function Home() {
 }
 
 // serves as router
-
 function AppShell() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-
   const onMessagesPage = location.pathname === '/messages';
-
   const handleMessagesClick = () => {
     navigate('/messages');
   };
-
   const handlePostsClick = () => {
     navigate('/');
   };

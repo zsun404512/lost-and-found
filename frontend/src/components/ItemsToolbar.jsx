@@ -1,3 +1,5 @@
+// Search and filtering toolbar for the items list/map, including history,
+// item/status/ownership filters, and map-scope controls.
 import { useState } from 'react';
 
 export default function ItemsToolbar({
@@ -14,7 +16,9 @@ export default function ItemsToolbar({
   onHistorySelect,
   onClearHistory,
   mapFilterActive,
-  onMapFilterChange
+  onMapFilterChange,
+  ownOnly,
+  onOwnOnlyChange,
 }) {
   const [filtersOpen, setFiltersOpen] = useState(false);
   return (
@@ -82,6 +86,18 @@ export default function ItemsToolbar({
             </div>
           </div>
         )}
+        <div className="view-toggle">
+          <label className="filters-checkbox">
+            <input
+              type="checkbox"
+              checked={viewMode === 'map'}
+              onChange={(e) =>
+                onViewModeChange(e.target.checked ? 'map' : 'list')
+              }
+            />
+            <span>Show map view</span>
+          </label>
+        </div>
         <div className="filters-bar">
           <button
             type="button"
@@ -174,21 +190,38 @@ export default function ItemsToolbar({
               </div>
             </div>
 
+            <div className="filters-group">
+              <div className="filters-label">Posts</div>
+              <div className="filters-options">
+                <button
+                  type="button"
+                  className={
+                    !ownOnly
+                      ? 'filters-chip filters-chip--active'
+                      : 'filters-chip'
+                  }
+                  onClick={() => onOwnOnlyChange(false)}
+                >
+                  All posts
+                </button>
+                <button
+                  type="button"
+                  className={
+                    ownOnly
+                      ? 'filters-chip filters-chip--active'
+                      : 'filters-chip'
+                  }
+                  onClick={() => onOwnOnlyChange(true)}
+                >
+                  My posts only
+                </button>
+              </div>
+            </div>
+
             {/* View + map radius */}
             <div className="filters-group">
-              <div className="filters-label">View</div>
+              <div className="filters-label">Map filter</div>
               <div className="filters-options-column">
-                <label className="filters-checkbox">
-                  <input
-                    type="checkbox"
-                    checked={viewMode === 'map'}
-                    onChange={(e) =>
-                      onViewModeChange(e.target.checked ? 'map' : 'list')
-                    }
-                  />
-                  <span>Show map view</span>
-                </label>
-
                 <label className="filters-checkbox filters-checkbox-nested">
                   <input
                     type="checkbox"
