@@ -31,3 +31,15 @@ Feature: Items filters on /api/items
     Then the response status should be 200
     And every item in the response JSON should have status "open"
 
+# initial prompt
+# assume that you are a high end quality assurance software engineer, with specialty in automated tests that test the system
+# I need some tests that go along with the cucumber testing framework
+# the tests should follow the other tests in @backend/test/features
+# the test should verify that the items are filtered correctly
+# create a few different scenarios, including
+# different statuses
+# different types
+# different combinations of statuses and types
+# different combinations of statuses and types and other parameters
+# the tests should be written in a way that is easy to read and understand
+# for all of these tests, leave a framework in the corresponding .cjs files with todos so that I can fill in the code myself and write tests

@@ -1,0 +1,35 @@
+assume that you are a high end quality assurance software engineer, with specialty in automated tests that test the system
+I need some tests that go along with the vitest framework
+note that since this is vitest, your job is to focus on frontend components
+
+requirements:
+- write tests in separate *.test.jsx files for the key components, following the style of my existing tests
+- use the vitest library
+- test behavior from the user’s point of view (visible text, roles, clicks, form input), not implementation details
+- mock fetch/network requests so tests do not depend on a running backend
+- keep assertions clear and focused, and make the tests more unit/integration focused
+
+some example areas to cover (you can choose scenarios or refine them):
+- ItemsToolbar/filters:
+  - typing in the search box triggers a fetch to /api/items with the correct search and status/type query params
+  - clicking “My posts only” filters the list to items belonging to the current user
+  - changing the type/status chips updates the query (lost/found, open/resolved/all)
+  - search history chips appear and can be clicked to do a previous search, with a clear button to clear history
+- ItemsViewToggle:
+  - default view is list, and checking “Show map view” switches to map mode
+- ItemsMap:
+  - renders markers for the items passed in
+  - calls the onBoundsChange callback when the map moves/zooms
+  - calls onMapClick with lat/lng when the user clicks on the map
+- ItemForm/lat & lng validation:
+  - allows intermediate values like "-" and "-." while typing
+  - rejects out-of-range or badly formatted coordinates
+  - only shows lat/lng inputs when the “more details” section is expanded
+- Home empty states:
+  - shows appropriate messages when there are no items, when there is an active search with no results, and when the user is logged out
+- messaging/nav components:
+  - MessagesNavButton shows unread count and calls onClick
+  - SearchHistory renders chips and calls its callbacks correctly
+  - basic rendering and interaction tests for simple components
+
+please generate the vitest + React Testing Library tests in this style, placing them under @frontend/tests/components, and I will run and refine them afterwards
