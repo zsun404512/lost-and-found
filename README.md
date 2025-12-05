@@ -66,7 +66,7 @@ CS-35L-Group-Project/
       └─ utils/             # shared helpers
 ```
 
-## Getting Started (macOS / zsh)
+## Getting Started
 From the repository root:
 
 1) Install dependencies (workspaces: frontend + backend)
@@ -74,7 +74,10 @@ From the repository root:
 npm install --workspaces
 ```
 
-2) Run both frontend and backend together
+2) Paste the contents of `.env.example` into `.env` and update the values as needed. For a functional setup, you can just paste the contents as-is for now. (If you want to have a personalized configuration, [dee how to set up .env and MongoDB](#manually-setting-up-env-file-and-mongodb)
+).
+
+3) Run both frontend and backend together
 ```bash
 npm run dev
 ```
@@ -93,56 +96,68 @@ cd frontend
 npm run dev
 ```
 
-## Environment Variables
-Backend (`backend/.env` — create from `backend/.env.example`):
-- `PORT` (optional, default 4000)
-- `MONGODB_URI` (optional) — if set and reachable, the API uses MongoDB; otherwise it falls back to in-memory storage loaded from `src/data.json`.
+## Testing
 
-## API Endpoints (Backend)
-- `GET /api` → `{ message: "Hello from the Lost and Found API!" }`
-- `GET /api/ping` → `{ message: "pong", time: <ISO> }`
-- `GET /api/items` → list items (MongoDB if configured, else in-memory)
-- `POST /api/items` → create item (JSON body: `{ title, type, description, location, date }`)
-- `GET /api/items/:id` → get single item by id
-- `PUT /api/items/:id` → update item (auth, owner only)
-- `DELETE /api/items/:id` → delete item (auth, owner only)
-- `PUT /api/items/:id/toggle-resolve` → toggle item status (auth, owner only)
-- `POST /api/auth/register` → register user `{ email, password }`
-- `POST /api/auth/login` → log in and get JWT
-- `POST /api/upload` → upload image file (auth)
-- `GET /api/images/:id` → fetch image by id
-- `GET /api/messages/conversations` → list conversations (auth)
-- `POST /api/messages/conversations` → create/get conversation (auth)
-- `GET /api/messages/conversations/:conversationId/messages` → list messages (auth)
-- `POST /api/messages/conversations/:conversationId/messages` → send message (auth)
+### Frontend tests
 
-## Linting (Frontend)
-ESLint is configured in `frontend/eslint.config.js`.
+- Frontend tests are performed by `vitest` in the form of unit test and integration tests.
+- Notice that you need to have the frontend and backend running to test components that depend on API calls.
+
 ```bash
 cd frontend
-npm run lint
+npx vitest # run all tests
 ```
-You can also apply safe fixes:
+
+### Backend tests 
+
+- Backend tests are written in Node.js and use `vitest`.
+- Notice that you need a running backend and frontend to test API calls.
+
 ```bash
-npx eslint . --fix
+cd backend
+node --test test/*.test.mjs
+node --test test/individual_file.test.mjs # you can run it all or indivually
 ```
 
-## Notes
-- The Vite dev server proxies `/api` to `http://localhost:4000` (see `frontend/vite.config.js`).
-- CORS is enabled on the backend for development.
-- If you don’t set `MONGODB_URI`, everything still works using in-memory data.
+### End-to-end tests: Cucumber
 
-## Next Steps
-- Replace placeholder Login/Sign Up pages with real forms
-- Add tests and CI
-- Add deployment config (Docker, Render, Fly.io, or Azure)
+- Notice that you need to switch to local MongoDB instance for these tests to work properly.
+- For configuration, see [local setup instructions](#local-mongodb-community-edition) in [how to set up .env and MongoDB](#manually-setting-up-env-file-and-mongodb)
 
-## Using MongoDB (optional)
+
+```bash
+cd backend
+MONGODB_URI="mongodb://127.0.0.1:27017/lostandfound-test" npm run dev
+# open another terminal to run the tests
+cd backend
+MONGODB_URI="mongodb://127.0.0.1:27017/lostandfound-test" npm run cucumber 
+```
+
+### End-to-end with Playwright
+
+- The Playwright tests provide browser-level end-to-end testing using real browsers, and it also needs a running backend with local MongoDB instance.
+- The Playwright tests are run in the root project folder.
+
+```bash
+MONGODB_URI="mongodb://127.0.0.1:27017/lostandfound-test" npm run dev
+npm run test:e2e # run this in another terminal
+```
+
+### Test Doubles
+
+- Test Doubles are performed by `jest`.
+- The commands are run from the root project folder.
+
+```bash
+npm test --workspace backend # run all tests from project root
+```
+
+## Manually Setting up `.env` file and MongoDB
 If you want the backend to persist items to MongoDB, set up a MongoDB instance (MongoDB Atlas or local) and provide the connection string in `backend/.env` as `MONGODB_URI`.
 
 ### Local MongoDB (Community Edition)
-If you prefer to run MongoDB locally on macOS using Homebrew:
 
+#### MacOS with Homebrew
 1. Install MongoDB Community Edition (one-time):
 
     ```bash
@@ -179,6 +194,25 @@ If you prefer to run MongoDB locally on macOS using Homebrew:
 
     If the backend can connect, it will log `Connected to MongoDB` and use the `lostandfound` database for `/api/items`.
 
+#### Windows with MongoDB Community Server (Not Recommended)
+
+If you prefer to run MongoDB locally on Windows:
+
+1. Install MongoDB Community Server (one-time):
+
+   - Go to https://www.mongodb.com/try/download/community
+   - Download the Windows installer (MSI).
+   - During setup, keep defaults and **install MongoDB as a Service**.
+
+2. Start (or verify) the MongoDB service:
+
+   Open PowerShell **as Administrator** and run:
+
+   ```powershell
+   # Start the MongoDB Windows service (name may be 'MongoDB' or 'MongoDB Server')
+   net start MongoDB
+   ```
+
 ### Cloud MongoDB (MongoDB Atlas)
 You can also use a cloud-hosted MongoDB instance via MongoDB Atlas. Here's the basic setup:
 
@@ -193,40 +227,43 @@ MONGODB_URI=mongodb+srv://user:password@cluster0.abcde.mongodb.net/lostandfound?
 
 Behavior: if `MONGODB_URI` is set and the backend can connect, the API will use MongoDB for GET/POST `/api/items`. If no `MONGODB_URI` is provided or the DB connection fails, the backend will fall back to an in-memory store (so the app still works for local dev).
 
-## Testing
+## Project Reference
 
-### Frontend tests
+### Environment Variables
+Backend (`backend/.env` — create from `backend/.env.example`):
+- `PORT` (optional, default 4000)
+- `MONGODB_URI` (optional) — if set and reachable, the API uses MongoDB; otherwise it falls back to in-memory storage loaded from `src/data.json`.
 
-Frontend tests are performed by `vitest`.
+### API Endpoints (Backend)
+- `GET /api` → `{ message: "Hello from the Lost and Found API!" }`
+- `GET /api/ping` → `{ message: "pong", time: <ISO> }`
+- `GET /api/items` → list items (MongoDB if configured, else in-memory)
+- `POST /api/items` → create item (JSON body: `{ title, type, description, location, date }`)
+- `GET /api/items/:id` → get single item by id
+- `PUT /api/items/:id` → update item (auth, owner only)
+- `DELETE /api/items/:id` → delete item (auth, owner only)
+- `PUT /api/items/:id/toggle-resolve` → toggle item status (auth, owner only)
+- `POST /api/auth/register` → register user `{ email, password }`
+- `POST /api/auth/login` → log in and get JWT
+- `POST /api/upload` → upload image file (auth)
+- `GET /api/images/:id` → fetch image by id
+- `GET /api/messages/conversations` → list conversations (auth)
+- `POST /api/messages/conversations` → create/get conversation (auth)
+- `GET /api/messages/conversations/:conversationId/messages` → list messages (auth)
+- `POST /api/messages/conversations/:conversationId/messages` → send message (auth)
 
+### Linting (Frontend)
+ESLint is configured in `frontend/eslint.config.js`.
 ```bash
 cd frontend
-npx vitest # run all tests
+npm run lint
 ```
-
-### Backend tests 
-
-Backend tests are done with `vitest` and `node`.
-
+You can also apply safe fixes:
 ```bash
-cd backend
-node --test test/*.test.mjs
-node --test test/individual_file.test.mjs # you can run it all or indivually
+npx eslint . --fix
 ```
 
-### End-to-end tests: Cucumber
-
-Cucumber tests are performed by `cucumber`.
-
-```bash
-cd backend
-npm run cucumber
-```
-
-### Test Doubles
-
-Test Doubles are performed by `jest`.
-
-```bash
-npm test --workspace backend # run all tests from project root
-```
+### Notes
+- The Vite dev server proxies `/api` to `http://localhost:4000` (see `frontend/vite.config.js`).
+- CORS is enabled on the backend for development.
+- If you don’t set `MONGODB_URI`, everything still works using in-memory data.
