@@ -13,7 +13,7 @@ Lost & Found tracker with a Vite + React frontend and an Express backend. The ba
 ## Tech Stack
 - Frontend: React 18, Vite, React Router
 - Backend: Node.js, Express, Mongoose (optional), CORS, Morgan
-- Tooling: ESLint
+- Tooling: ESLint, Vitest (frontend), Jest + Supertest (backend), Cucumber
 
 ## Monorepo Structure (tree)
 ```
@@ -22,26 +22,48 @@ CS-35L-Group-Project/
 ├─ README.md
 ├─ package.json               # npm workspaces + scripts
 ├─ package-lock.json
+├─ test-results/             # test output artifacts (e.g., coverage, reports)
+├─ playwright-tests/         # Playwright end-to-end tests (if used)
 ├─ backend/
 │  ├─ .env.example
 │  ├─ package.json
+│  ├─ test/
+│  │  ├─ features/          # Cucumber feature files
+│  │  ├─ steps/             # Cucumber step definitions
+│  │  └─ support/           # Cucumber support & hooks
 │  └─ src/
-│     ├─ index.js            # API server
-│     └─ data.json           # sample data (in-memory fallback)
+│     ├─ index.js           # API server entry
+│     ├─ routes/            # Express route definitions
+│     │  └─ __tests__/      # route-level Jest tests
+│     ├─ controllers/       # request handlers / business logic
+│     │  └─ __tests__/      # controller tests
+│     ├─ models/            # Mongoose models (MongoDB)
+│     ├─ middleware/        # custom Express middleware
+│     └─ messages/          # shared response / validation messages
 └─ frontend/
-   ├─ package.json           # Vite + React app
-   ├─ vite.config.js         # dev proxy: /api -> http://localhost:4000
+   ├─ package.json          # Vite + React app
+   ├─ vite.config.js        # dev proxy: /api -> http://localhost:4000
    ├─ index.html
    ├─ eslint.config.js
    ├─ public/
-   │  └─ index.html
+   │  ├─ index.html
+   │  └─ decorations/       # static UI assets
+   ├─ tests/
+   │  ├─ components/        # React component tests
+   │  ├─ pages/             # page-level tests
+   │  ├─ context/           # context/provider tests
+   │  └─ utils/             # utility tests
    └─ src/
-      ├─ App.jsx            # UI (Home) + router pages
-      ├─ main.jsx
-      ├─ index.jsx
+      ├─ main.jsx           # React entry
+      ├─ App.jsx            # top-level app + routes
+      ├─ index.jsx          # legacy/alternate entry (if used)
       ├─ styles.css
-      └─ assets/
-         └─ react.svg
+      ├─ assets/            # images, icons, etc.
+      ├─ components/        # shared UI components
+      ├─ pages/             # route components / screens
+      ├─ context/           # React context providers
+      ├─ hooks/             # custom React hooks
+      └─ utils/             # shared helpers
 ```
 
 ## Getting Started (macOS / zsh)
@@ -82,6 +104,17 @@ Backend (`backend/.env` — create from `backend/.env.example`):
 - `GET /api/items` → list items (MongoDB if configured, else in-memory)
 - `POST /api/items` → create item (JSON body: `{ title, type, description, location, date }`)
 - `GET /api/items/:id` → get single item by id
+- `PUT /api/items/:id` → update item (auth, owner only)
+- `DELETE /api/items/:id` → delete item (auth, owner only)
+- `PUT /api/items/:id/toggle-resolve` → toggle item status (auth, owner only)
+- `POST /api/auth/register` → register user `{ email, password }`
+- `POST /api/auth/login` → log in and get JWT
+- `POST /api/upload` → upload image file (auth)
+- `GET /api/images/:id` → fetch image by id
+- `GET /api/messages/conversations` → list conversations (auth)
+- `POST /api/messages/conversations` → create/get conversation (auth)
+- `GET /api/messages/conversations/:conversationId/messages` → list messages (auth)
+- `POST /api/messages/conversations/:conversationId/messages` → send message (auth)
 
 ## Linting (Frontend)
 ESLint is configured in `frontend/eslint.config.js`.
@@ -164,41 +197,36 @@ Behavior: if `MONGODB_URI` is set and the backend can connect, the API will use 
 
 ### Frontend tests
 
-From the `frontend` workspace, there is only one type of test, which are performed by `vitest`.
+Frontend tests are performed by `vitest`.
 
 ```bash
 cd frontend
-npx vitest run tests/components/*.test.jsx # you can run it all or indivually
-npx vitest run tests/components/individual_file.test.jsx
+npx vitest # run all tests
 ```
 
-### Backend tests
+### Backend tests 
 
-From the `backend` workspace: there are two types of tests, which are performed by `vitest` and `cucumber`.
+Backend tests are done with `vitest` and `node`.
 
-1. When using cucumber, use the following command:
+```bash
+cd backend
+node --test test/*.test.mjs
+node --test test/individual_file.test.mjs # you can run it all or indivually
+```
+
+### End-to-end tests: Cucumber
+
+Cucumber tests are performed by `cucumber`.
 
 ```bash
 cd backend
 npm run cucumber
 ```
 
-2. When using node + vitest, use the following command:
+### Test Doubles
+
+Test Doubles are performed by `jest`.
 
 ```bash
-cd backend
-node --test test/*.test.jsx
-node --test test/individual_file.test.jsx # you can run it all or indivually
+npm test --workspace backend # run all tests from project root
 ```
-
-
-### Backend Cucumber tests
-
-From the `backend` workspace:
-
-```bash
-cd backend
-npm run cucumber
-```
-
-This runs the Cucumber feature tests using the configuration in `test/cucumber.cjs`.
