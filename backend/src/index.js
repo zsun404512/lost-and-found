@@ -37,6 +37,7 @@ if (mongoUri) {
   mongoose.connect(mongoUri, { useNewUrlParser: true, useUnifiedTopology: true })
     .then(() => {
       useDb = true;
+      console.log('Connected to MongoDB');
     })
     .catch((err) => {
       useDb = false;
