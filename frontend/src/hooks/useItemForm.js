@@ -119,6 +119,9 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
   }
 
   function handleStartEdit(item) {
+    const isSameItem =
+      editingItem && (editingItem._id || editingItem.id) === (item._id || item.id);
+
     setEditingItem(item);
     setForm({
       title: item.title || '',
@@ -144,7 +147,7 @@ export function useItemForm({ itemsState, message, setMessage, user, logout, nav
     setSelectedFile(null);
     setMessage(null);
 
-    if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') {
+    if (isSameItem && typeof window !== 'undefined' && typeof window.scrollTo === 'function') {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }

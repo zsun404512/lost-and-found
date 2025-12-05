@@ -25,6 +25,7 @@ function Home() {
   });
   const [showForm, setShowForm] = useState(false);
   const [ownOnly, setOwnOnly] = useState(false);
+  const [editHintVisible, setEditHintVisible] = useState(false);
 
   const updateHistory = (newTerm) => {
     let trimmed = newTerm.trim();
@@ -110,6 +111,11 @@ function Home() {
   return (
     <div className="app">
       <h1 className="title">UCLostAndfound</h1>
+      {editHintVisible && (
+        <div className="edit-hint-banner">
+          Click "Report an item" to open the edit form if you haven't already.
+        </div>
+      )}
       {user ? (
         <>
           {!showForm ? (
@@ -124,7 +130,10 @@ function Home() {
                   <button
                     type="button"
                     className="btn home-hero-button"
-                    onClick={() => setShowForm(true)}
+                    onClick={() => {
+                      setShowForm(true);
+                      setEditHintVisible(false);
+                    }}
                   >
                     Report an item
                   </button>
@@ -249,6 +258,11 @@ function Home() {
                     setShowForm(true);
                     handleStartEdit(item);
                   }}
+                  onEditSecondClick={() => {
+                    if (!showForm) {
+                      setEditHintVisible(true);
+                    }
+                  }}
                   onToggleResolve={handleToggleResolve}
                   onDelete={handleDelete}
                   onMessageOwner={handleMessageOwner}
@@ -270,6 +284,11 @@ function Home() {
                   items={ownedItems}
                   user={user}
                   onEdit={handleStartEdit}
+                  onEditSecondClick={() => {
+                    if (!showForm) {
+                      setEditHintVisible(true);
+                    }
+                  }}
                   onToggleResolve={handleToggleResolve}
                   onDelete={handleDelete}
                   onMessageOwner={handleMessageOwner}

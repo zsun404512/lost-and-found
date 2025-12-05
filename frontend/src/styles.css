@@ -880,6 +880,16 @@ textarea {
   color: #1e3a8a;
 }
 
+.edit-hint-banner {
+  margin: 8px 0 16px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: #fffbeb;
+  border: 1px solid #facc15;
+  color: #92400e;
+  font-size: 13px;
+}
+
 .btn-edit-cancel {
   background: transparent;
   border: none;
