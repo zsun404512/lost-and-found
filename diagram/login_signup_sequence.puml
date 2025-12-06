@@ -1,0 +1,74 @@
+@startuml login_signup_sequence
+title Auth Flow: Login & Signup (Detailed)
+
+/' Participants in object:Class format '/
+actor "u: User" as U
+participant "page: SignupPage" as UI
+participant "controller: AuthController" as API
+participant "database: UserModel" as Store
+
+== Sign Up Flow ==
+
+U -> UI : enterSignupDetails(email, password, name)
+activate UI
+
+UI -> UI : validateInput(email, password)
+
+UI -> API : POST /api/auth/register\n{ email, password }
+activate API
+
+API -> API : registerUser(req, res)
+
+API -> Store : findUserByEmail(email)
+activate Store
+Store --> API : null
+deactivate Store
+
+API -> API : hashPassword(password)
+API -> Store : createUser(email, hashedPassword, name)
+activate Store
+Store --> API : newUser
+deactivate Store
+
+API --> UI : 201 Created (message, _id, email)
+deactivate API
+
+UI -> U : redirect(Login)
+deactivate UI
+
+== Login Flow ==
+
+note over UI : Now with object page: LoginPage
+
+U -> UI : enterCredentials(email, password)
+activate UI
+
+UI -> API : POST /api/auth/login\n{ email, password }
+activate API
+
+API -> API : loginUser(req, res)
+
+API -> Store : findUserByEmail(email)
+activate Store
+alt User Not Found
+  Store --> API : null
+  API --> UI : 401 Unauthorized
+else User Found
+  Store --> API : user
+  deactivate Store
+
+  API -> API : verifyPassword(password, user.hash)
+  alt Invalid Password
+    API --> UI : 401 Unauthorized
+  else Password Valid
+    API -> API : generateToken(user.id)
+    API --> UI : 200 OK (token, email, message)
+  end
+end
+deactivate API
+
+UI -> UI : saveToken(token)
+UI -> U : redirect(Dashboard)
+deactivate UI
+
+@enduml

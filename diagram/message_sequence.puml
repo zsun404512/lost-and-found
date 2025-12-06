@@ -1,0 +1,112 @@
+@startuml message_sequence
+title Messaging Flow: Frontend ↔ Backend (Detailed)
+
+/' Participants in object:Class format '/
+actor "user:User" as U
+participant "page:MessagesPage" as UI
+participant "controller:MessagesRoutes" as API
+participant "store:MessageModel" as Store
+
+== Load conversations on page load ==
+
+U -> UI : openMessagesPage()
+activate UI
+
+UI -> API : GET /api/messages/conversations\n(Authorization: Bearer token)
+activate API
+
+API -> API : router.get('/conversations')
+
+API -> API : verifyToken(token)
+API -> Store : findConversations(userId)
+activate Store
+Store --> API : List<Conversation>
+deactivate Store
+
+API -> Store : findParticipantDetails(otherUserIds)
+activate Store
+Store --> API : List<UserProfiles>
+deactivate Store
+
+API --> UI : 200 OK (conversations, participants)
+deactivate API
+
+UI -> U : renderConversationList(conversations)
+deactivate UI
+
+== User selects a conversation ==
+
+U -> UI : selectConversation(conversationId)
+activate UI
+
+UI -> API : GET /api/messages/conversations/{id}/messages
+activate API
+
+API -> API : router.get('/conversations/:id/messages')
+
+API -> API : verifyToken(token)
+API -> Store : getConversation(conversationId)
+activate Store
+Store --> API : conversation
+deactivate Store
+
+API -> API : checkParticipation(userId, conversation)
+alt User Not Participant
+  API --> UI : 403 Forbidden
+else User Is Participant
+  API -> Store : getMessages(conversationId)
+  activate Store
+  Store --> API : List<Message>
+  deactivate Store
+  API --> UI : 200 OK (messages)
+end
+deactivate API
+
+UI -> U : renderMessageThread(messages)
+deactivate UI
+
+== Mark conversation as read ==
+
+UI -> API : POST /api/messages/conversations/{id}/read
+activate UI
+activate API
+
+API -> API : router.post('/conversations/:id/read')
+
+API -> API : verifyToken(token)
+API -> Store : markMessagesRead(conversationId, userId)
+activate Store
+Store --> API : success
+deactivate Store
+
+API --> UI : 200 OK
+deactivate UI
+deactivate API
+
+== Send a new message ==
+
+U -> UI : sendMessage(text)
+activate UI
+
+UI -> UI : validateInput(text)
+
+UI -> API : POST /api/messages/conversations/{id}/messages\n{ body: text }
+activate API
+
+API -> API : router.post('/conversations/:id/messages')
+
+API -> API : verifyToken(token)
+API -> API : validateMessage(text)
+API -> Store : createMessage(conversationId, userId, text)
+activate Store
+Store --> API : newMessage
+deactivate Store
+
+API --> UI : 201 Created (newMessage)
+deactivate API
+
+UI -> UI : updateLocalState(newMessage)
+UI -> U : showNewMessage(newMessage)
+deactivate UI
+
+@enduml

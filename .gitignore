@@ -6,6 +6,7 @@
 # Build output
 /dist/
 /build/
+/out/
 
 # Environment files
 .env

@@ -1,0 +1,184 @@
+@startuml LostAndFoundClassDiagram
+title Lost & Found Class Diagram
+skinparam classAttributeIconSize 0
+
+note as Legend
+  This is a simplified version of the interfaces
+end note
+
+class User {
+  - _id : ObjectId
+  - email : String
+  - password : String
+  - createdAt : Date
+  - updatedAt : Date
+}
+
+class Item {
+  - _id : ObjectId
+  - title : String
+  - type : String      ' "lost" | "found"
+  - description : String
+  - location : String
+  - date : String
+  - lat : Number
+  - lng : Number
+  - user : ObjectId
+  - status : String    ' "open" | "resolved"
+  - image : String
+  - createdAt : Date
+  - updatedAt : Date
+}
+
+class Conversation {
+  - _id : ObjectId
+  - participants : ObjectId[]
+  - createdAt : Date
+  - updatedAt : Date
+}
+
+class Message {
+  - _id : ObjectId
+  - conversationId : ObjectId
+  - senderId : ObjectId
+  - body : String
+  - readBy : ObjectId[]
+  - createdAt : Date
+  - updatedAt : Date
+}
+
+class Image {
+  - _id : ObjectId
+  - data : Buffer
+  - contentType : String
+  - owner : ObjectId
+  - createdAt : Date
+  - updatedAt : Date
+}
+
+' ---- Service / store classes ----
+
+class MessageStore {
+  + getOrCreateConversation(userA, userB)
+  + listConversations(userId)
+  + getConversationById(id)
+  + getMessages(conversationId)
+  + addMessage(conversationId, senderId, body)
+  + markRead(conversationId, readerId)
+}
+
+class ItemRoutes {
+  ' Implemented in backend/src/index.js
+  + listItems()     
+  + createItem()    
+  + getItem(id)     
+  + updateItem(id)  
+  + deleteItem(id)  
+  + toggleResolve(id) 
+}
+
+' ---- Additional backend classes to reflect project structure ----
+
+class AuthRoutes {
+  + registerUser()
+  + loginUser()    
+}
+
+class MessagesRoutes {
+  + createConversation() 
+  + listConversations()  
+  + getConversation(id)  
+  + getMessages(id)      
+  + sendMessage(id)      
+  + markAsRead(id)       
+}
+
+class ImageRoutes {
+  + getImage(id) 
+}
+
+class UploadRoutes {
+  + uploadImage()
+}
+
+class ProtectMiddleware {
+  + protect(req, res, next)
+}
+
+class ExpressApp {
+  + configureMiddleware()
+  + mountRoutes()
+}
+
+class MemoryMessageStore {
+  + getOrCreateConversation(...)
+  + listConversations(...)
+  + getConversationById(...)
+  + addMessage(...)
+  + getMessages(...)
+  + markRead(...)
+}
+
+class MongoMessageStore {
+  + getOrCreateConversation(...)
+  + listConversations(...)
+  + getConversationById(...)
+  + addMessage(...)
+  + getMessages(...)
+  + markRead(...)
+}
+
+' ---- Associations ----
+
+' A User owns many Items
+User o-- Item 
+
+' A User participates in many Conversations (2 users per conversation)
+User <-- Conversation 
+
+' A Conversation contains many Messages
+Conversation *-- Message 
+
+' A User sends many Messages
+User <-- Message
+
+' An Item references an image (by string ID/URL)
+Item --> Image : references
+
+' Image is owned by User
+User o-- Image 
+
+' Services depend on domain entities
+MessageStore --> Conversation : manages
+MessageStore --> Message : manages
+ItemRoutes --> Item : manages
+ItemRoutes --> User 
+
+' MessageStore variants implement the same behavior
+MemoryMessageStore --|> MessageStore
+MongoMessageStore  --|> MessageStore
+
+' Message stores use Conversation and Message models
+MemoryMessageStore --> Conversation 
+MemoryMessageStore --> Message 
+MongoMessageStore  --> Conversation 
+MongoMessageStore  --> Message 
+
+' Controllers and routes
+AuthRoutes --> User : creates/authenticates
+MessagesRoutes --> MessageStore 
+MessagesRoutes --> User 
+UploadRoutes --> Image : creates
+ImageRoutes --> Image : serves
+
+' Express app wiring
+ExpressApp --> AuthRoutes : mounts /api/auth
+ExpressApp --> MessagesRoutes : mounts /api/messages
+ExpressApp --> ItemRoutes : defines /api/items
+ExpressApp --> UploadRoutes : mounts /api/upload
+ExpressApp --> ImageRoutes : mounts /api/images
+ExpressApp --> ProtectMiddleware 
+ExpressApp --> Item 
+ExpressApp --> Image 
+
+@enduml

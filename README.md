@@ -252,6 +252,22 @@ Backend (`backend/.env` — create from `backend/.env.example`):
 - `GET /api/messages/conversations/:conversationId/messages` → list messages (auth)
 - `POST /api/messages/conversations/:conversationId/messages` → send message (auth)
 
+### Class Diagram
+
+![Class Diagram](diagram/class.png)
+
+### Login/Signup Sequence Diagram
+
+![Login/Signup Sequence Diagram](diagram/login_signup_sequence.png)
+
+### Post Item Sequence Diagram
+
+![Post Item Sequence Diagram](diagram/post_sequence.png)
+
+### Message Sequence Diagram
+
+![Message Sequence Diagram](diagram/message_sequence.png)
+
 ### Linting (Frontend)
 ESLint is configured in `frontend/eslint.config.js`.
 ```bash

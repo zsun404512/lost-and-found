@@ -1,0 +1,104 @@
+@startuml post_sequence
+Title Posts Flow: User creates, edits, and resolves items
+
+/' Participants '/
+actor "user: User" as U
+participant "page: Home/Posts" as UI
+participant "controller: ItemsRoutes" as API
+participant "database: ItemModel" as Store
+
+== Load recent items ==
+
+U -> UI : openHome()
+activate UI
+UI -> API : GET /api/items (optionally status=open)
+activate API
+API -> API : verifyTokenIfPresent(token)
+API -> Store : findRecentItems()
+activate Store
+Store --> API : List<Item>
+deactivate Store
+API --> UI : 200 OK (items)
+deactivate API
+UI -> U : showRecentItems(items)
+deactivate UI
+
+== Create a new post ==
+
+U -> UI : click "Report an item"
+activate UI
+UI -> UI : validate form fields
+UI -> API : POST /api/items {title, description, category, image}
+activate API
+API -> API : verifyToken(token)
+API -> API : validateItemPayload()
+API -> Store : createItem(userId, payload)
+activate Store
+Store --> API : newItem
+deactivate Store
+API --> UI : 201 Created (newItem)
+deactivate API
+UI -> UI : add item to list
+UI -> U : show success message
+deactivate UI
+
+== Edit an existing post ==
+
+U -> UI : open my post detail
+activate UI
+UI -> API : GET /api/items/{id}
+activate API
+API -> API : verifyToken(token)
+API -> Store : getItem(id)
+activate Store
+Store --> API : item
+deactivate Store
+API -> API : checkOwnership(userId, item)
+alt Not Owner
+  API --> UI : 403 Forbidden
+else Owner
+  API --> UI : 200 OK (item)
+end
+activate UI
+UI -> UI : edit fields
+UI -> API : PUT /api/items/{id} {updated fields}
+activate API
+API -> API : verifyToken(token)
+API -> API : validateItemPayload()
+API -> Store : updateItem(id, payload)
+activate Store
+Store --> API : updatedItem
+deactivate Store
+API --> UI : 200 OK (updatedItem)
+deactivate API
+UI -> UI : refresh item in list
+UI -> U : show updated item
+deactivate UI
+
+== Mark a post as resolved ==
+
+U -> UI : markResolved(id)
+activate UI
+UI -> API : POST /api/items/{id}/resolve
+activate API
+API -> API : verifyToken(token)
+API -> Store : getItem(id)
+activate Store
+Store --> API : item
+deactivate Store
+API -> API : checkOwnership(userId, item)
+alt Not Owner
+  API --> UI : 403 Forbidden
+else Owner
+  API -> Store : markResolved(id)
+  activate Store
+  Store --> API : resolvedItem
+  deactivate Store
+  API --> UI : 200 OK (resolvedItem)
+end
+deactivate API
+UI -> UI : update status to resolved
+UI -> U : show resolved state
+
+deactivate UI
+@enduml
