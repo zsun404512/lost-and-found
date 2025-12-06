@@ -74,7 +74,7 @@ From the repository root:
 npm install --workspaces
 ```
 
-2) Paste the contents of `.env.example` into `.env` and update the values as needed. For a functional setup, you can just paste the contents as-is for now. (If you want to have a personalized configuration, [dee how to set up .env and MongoDB](#manually-setting-up-env-file-and-mongodb)
+2) Paste the contents of `.env.example` into `.env` and update the values as needed. For a functional setup, you can just paste the contents as-is for now. (If you want to have a personalized configuration, [see how to set up .env and MongoDB](#manually-setting-up-env-file-and-mongodb)
 ).
 
 3) Run both frontend and backend together
