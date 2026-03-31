@@ -1,5 +1,5 @@
 
-# CS-35L Group Project
+# Lost & Found
 
 Lost & Found tracker with a Vite + React frontend and an Express backend. The backend can use MongoDB if available, or fall back to in-memory storage for local development.
 
@@ -17,7 +17,7 @@ Lost & Found tracker with a Vite + React frontend and an Express backend. The ba
 
 ## Monorepo Structure (tree)
 ```
-CS-35L-Group-Project/
+lost-and-found/
 ├─ .gitignore
 ├─ README.md
 ├─ package.json               # npm workspaces + scripts
@@ -71,7 +71,7 @@ From the repository root:
 
 1) Install dependencies (workspaces: frontend + backend)
 ```bash
-npm install --workspaces
+npm install
 ```
 
 2) Paste the contents of `.env.example` into `.env` and update the values as needed. For a functional setup, you can just paste the contents as-is for now. (If you want to have a personalized configuration, [see how to set up .env and MongoDB](#manually-setting-up-env-file-and-mongodb)
